@@ -22,6 +22,9 @@ enum CategoryViewType: Identifiable, Hashable {
     }
 }
 
+// =================================================================
+// MARK: - MAIN VIEW
+// =================================================================
 struct MainView: View {
     @StateObject private var viewModel = MainViewModel()
     @Binding var isPaywallPresented: Bool
@@ -182,7 +185,6 @@ struct MainView: View {
         let config = UIImage.SymbolConfiguration(pointSize: 32, weight: .bold, scale: .large)
         
         // 2. Создаем конфигурацию цвета: Hierarchical
-        // Этот метод часто дает лучший результат для заливки SF Symbols
         let colorConfig = UIImage.SymbolConfiguration.preferringMulticolor()
         
         // 3. Объединяем конфигурации
@@ -192,7 +194,6 @@ struct MainView: View {
         let image = UIImage(systemName: systemName, withConfiguration: finalConfig)
         
         // 5. Применяем цвет
-        // В этом режиме withTintColor используется для применения *базового* цвета иерархии
         return image?.withTintColor(color)
     }
     
@@ -229,7 +230,9 @@ struct MainView: View {
     }
 }
 
-// MARK: - Category Group View
+// =================================================================
+// MARK: - CATEGORY GROUP VIEW (Не изменялась, но включена для полноты контекста)
+// =================================================================
 struct CategoryGroupView: View {
     let title: String
     let icon: String
@@ -256,6 +259,7 @@ struct CategoryGroupView: View {
                     Button(action: {
                         handleTap(type)
                     }) {
+                        // Использование обновленной CategoryCardView
                         CategoryCardView(
                             type: type,
                             viewModel: viewModel,
@@ -270,17 +274,20 @@ struct CategoryGroupView: View {
     }
 }
 
-// MARK: - Category Card View
+// =================================================================
+// MARK: - CATEGORY CARD VIEW (ОБНОВЛЕННЫЙ ВЕРТИКАЛЬНЫЙ ДИЗАЙН)
+// =================================================================
 struct CategoryCardView: View {
     let type: ScanItemType
     @ObservedObject var viewModel: MainViewModel
     let generateEmptyStateImage: (String, UIColor) -> UIImage?
     
     var body: some View {
-        HStack(spacing: 14) {
-            // Preview Thumbnail
+        VStack(spacing: 12) { // Используем VStack для вертикального расположения элементов
+            
+            // 1. Preview Image Block (Top, Center Aligned)
             ZStack {
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 16) // Увеличенный CornerRadius
                     .fill(
                         LinearGradient(
                             gradient: Gradient(colors: [
@@ -291,52 +298,61 @@ struct CategoryCardView: View {
                             endPoint: .bottomTrailing
                         )
                     )
-                    .frame(width: 56, height: 56)
+                    .frame(height: 120) // Большая высота для вертикального дизайна
                 
+                // Content (Image or Icon)
                 if let image = getPreviewImage() {
                     Image(uiImage: image)
                         .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 56, height: 56)
+                        .aspectRatio(contentMode: .fit) // .fit для лучшего отображения иконок/заглушек
+                        .frame(width: 80, height: 80) // Более крупное превью
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 } else {
                     Image(systemName: getIconName())
-                        .font(.system(size: 24, weight: .medium))
+                        .font(.system(size: 40, weight: .medium)) // Более крупная иконка
                         .foregroundColor(CMColor.primary.opacity(0.7))
                 }
             }
+            .padding(.horizontal, 14)
             
-            // Content
-            VStack(alignment: .leading, spacing: 3) {
+            // 2. Content (Text)
+            VStack(alignment: .center, spacing: 4) { // Центрируем текстовки
                 Text(type.title)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(CMColor.primaryText)
                 
                 Text(getCompactCountText())
-                    .font(.system(size: 14))
+                    .font(.system(size: 15))
                     .foregroundColor(CMColor.secondaryText)
                     .lineLimit(1)
             }
+            .frame(maxWidth: .infinity) // Растягиваем для центрирования
+            .padding(.horizontal, 14)
             
-            Spacer(minLength: 8)
-            
-            // Chevron
-            Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(CMColor.iconSecondary)
+            // 3. Chevron (Bottom Right)
+            HStack {
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(CMColor.iconSecondary)
+                    .padding(.trailing, 14)
+            }
+            .padding(.bottom, 12)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity) // Занимаем всю ширину
+        .padding(.top, 14)
         .background(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: 16)
                 .fill(CMColor.surface)
-                .shadow(color: CMColor.black.opacity(0.06), radius: 8, x: 0, y: 2)
+                .shadow(color: CMColor.black.opacity(0.08), radius: 10, x: 0, y: 4)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(CMColor.primary.opacity(0.1), lineWidth: 1)
         )
     }
+    
+    // --- Приватные функции, использующие внешние типы ---
     
     private func getIconName() -> String {
         switch type {
@@ -351,6 +367,8 @@ struct CategoryCardView: View {
     }
     
     private func getPreviewImage() -> UIImage? {
+        // Мы предполагаем, что CMColor, UIImage, .primaryUIColor и .warningUIColor существуют
+        // в вашем проекте, так как они используются в оригинальной функции generateEmptyStateImage.
         switch type {
         case .contacts:
             return viewModel.contactsPermissionStatus == .authorized ?
@@ -374,6 +392,7 @@ struct CategoryCardView: View {
     }
     
     private func getCompactCountText() -> String {
+        // Мы предполагаем, что extension Double.formatAsFileSize() существует в вашем проекте.
         switch type {
         case .contacts:
             switch viewModel.contactsPermissionStatus {
@@ -407,7 +426,9 @@ struct CategoryCardView: View {
     }
 }
 
-// MARK: - Scale Button Style
+// =================================================================
+// MARK: - SCALE BUTTON STYLE (НОВАЯ/ВОССТАНОВЛЕННАЯ СТРУКТУРА)
+// =================================================================
 struct ScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

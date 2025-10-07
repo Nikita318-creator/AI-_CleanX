@@ -58,9 +58,9 @@ struct SpeedTestView: View {
                     .foregroundColor(CMColor.tertiaryText)
             }
             
-            Spacer()
+//            Spacer()
             
-            ProBadgeView(isPaywallPresented: $isPaywallPresented)
+//            ProBadgeView(isPaywallPresented: $isPaywallPresented)
         }
         .padding(.top, 16 * scalingFactor)
     }
