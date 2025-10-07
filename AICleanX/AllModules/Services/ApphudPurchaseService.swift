@@ -31,13 +31,16 @@ enum PurchaseError: Error {
 public extension SKProduct {
     /// The localized price string for the product.
     var localizedPrice: String? {
-        return PriceFormatter.formatter.string(from: price)
-    }
+         let formatter = NumberFormatter()
+         formatter.numberStyle = .currency
+         formatter.locale = self.priceLocale
+         return formatter.string(from: self.price)
+     }
 
-    /// The currency symbol for the product.
-    var currency: String {
-        return PriceFormatter.formatter.currencySymbol
-    }
+     /// The currency symbol for the product.
+     var currency: String {
+         return self.priceLocale.currencySymbol ?? ""
+     }
 
     private struct PriceFormatter {
         static let formatter: NumberFormatter = {
@@ -63,8 +66,8 @@ final class ApphudPurchaseService {
 
     /// Checks if the user has an active subscription.
     var hasActiveSubscription: Bool {
-        true // todo: test111
-//        Apphud.hasActiveSubscription()
+//        true // todo PRO
+        Apphud.hasActiveSubscription()
     }
     
     // MARK: - Initialization
@@ -125,26 +128,32 @@ final class ApphudPurchaseService {
     }
 
     /// Calculates and returns the per-day price string.
-    func perDayPrice(for product: PurchaseServiceProduct) -> String {
-        let defaultPerDayPrice = "$0.71" // Updated fallback per-day price
-        
+    func perWeekPrice(for product: PurchaseServiceProduct) -> String? {
+        // Проверка наличия цены и символа валюты
         guard let priceValue = price(for: product),
               let currencySymbol = currency(for: product) else {
-            return defaultPerDayPrice
+            return nil
         }
         
-        var days: Double
-        switch product {
-        case .week:
-            days = 7.0
-        case .month:
-            days = 30.0 // Assuming 30 days for month
+        // Вычисляем цену только для МЕСЯЧНОЙ подписки, как вы просили.
+        // Для других типов подписок, возможно, лучше создать отдельную функцию или вернуть nil.
+        guard case .month = product else {
+            // Если продукт не месяц, просто возвращаем дефолтное значение
+            return nil
         }
         
-        let perDay = priceValue / days
+        // Используем среднее количество дней в месяце (365.25 / 12)
+        let daysInMonth: Double = 30.4375
+        let daysInWeek: Double = 7.0
         
-        // Formats the string with 2 decimal places
-        return String(format: "%.2f%@", perDay, currencySymbol)
+        // 1. Вычисляем цену за день: МесячнаяЦена / ДнейВМесяце
+        let perDayPrice = priceValue / daysInMonth
+        
+        // 2. Вычисляем цену за неделю: ЦенаЗаДень * 7
+        let perWeekPriceValue = perDayPrice * daysInWeek
+        
+        // Форматируем результат до двух знаков после запятой и добавляем валюту
+        return String(format: "%.2f%@", perWeekPriceValue, currencySymbol)
     }
 
     // MARK: - Private Methods

@@ -1,11 +1,19 @@
 import SwiftUI
 
+// MARK: - PaywallView (Основной экран)
 struct PaywallView: View {
     @Binding var isPresented: Bool
     @StateObject private var viewModel: PaywallViewModel
+    
+    // Состояние для выбранного плана (по умолчанию Месяц как "Лучшее предложение")
+    @State private var selectedPlan: PurchaseServiceProduct = .month
+    
+    // Состояние для отображения кнопки закрытия (используем для opacity)
+    @State private var closeButtonOpacity: Double = 0.0
 
     init(isPresented: Binding<Bool>) {
         self._isPresented = isPresented
+        // NOTE: Используйте здесь ваш фактический инициализатор PaywallViewModel
         self._viewModel = StateObject(wrappedValue: PaywallViewModel(isPresented: isPresented))
     }
 
@@ -15,156 +23,245 @@ struct PaywallView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                PaywallHeaderView()
-                    .padding(.top, 60)
                 
-                PaywallIconsBlockView()
-                    .padding(.top, 20)
-                
-                PaywallFeaturesTagView()
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
-                
-                VStack(spacing: 8) {
-                    Text("100% FREE FOR 3 DAYS")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(CMColor.primary)
+                // --- Верхний Блок: Кнопка закрытия и Изображение ---
+                HStack(alignment: .top) {
                     
-                    Text("ZERO FEE WITH RISK FREE")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(CMColor.primary.opacity(0.8))
-                        .multilineTextAlignment(.center)
+                    // Кнопка закрытия
+                    CloseButtonView(isPresented: $isPresented)
+                        .opacity(closeButtonOpacity) // Изначально 0, показываем через 2 сек.
+                        .animation(.easeIn(duration: 0.3), value: closeButtonOpacity)
                     
-                    Text("NO EXTRA COST")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(CMColor.primary.opacity(0.6))
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.top, 20)
-                
-                Text("Try 3 days free, after $6.99/week\nCancel anytime")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(CMColor.secondaryText.opacity(0.4))
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 40)
-
-                Spacer()
-                
-                PaywallContinueButton(action: {
-                    viewModel.continueTapped(with: .week)
-                })
-                .padding(.horizontal, 20)
-                
-                PaywallBottomLinksView(isPresented: $isPresented, viewModel: viewModel)
-                    .padding(.vertical, 10)
-            }
-            .padding(.bottom, 20)
-            
-            VStack {
-                HStack {
-                    Button(action: {
-                        isPresented = false
-                    }) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 20))
-                            .foregroundColor(CMColor.secondaryText.opacity(0.5))
-                            .padding(10)
-                    }
+                    // Spacer для центрирования изображения (слева от картинки)
                     Spacer()
+                    
+                    // Изображение (Перенесено сюда из PaywallMarketingBlockView, увеличено и центрировано)
+                    Image("paywallImage")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: UIScreen.main.bounds.width * 0.675) // Увеличено в 1.5 раза от предыдущего
+                        .cornerRadius(10)
+                    
+                    // Spacer для центрирования изображения (справа от картинки)
+                    Spacer()
+                    
+                    // Заглушка, чтобы кнопка закрытия была слева, а изображение в центре
+                    Spacer().frame(width: 50)
                 }
-                Spacer()
+                .padding(.top, 15)
+                .padding(.leading, 10)
+                
+                // --- Скроллируемая область (Начинается сразу после изображения) ---
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        
+                        // --- Тайтл и Фичи (Остальной контент, который был справа от картинки) ---
+                        PaywallMarketingBlockView()
+                            .padding(.top, 10)
+                        
+                        // --- Блок выбора подписки (Неделя / Месяц) ---
+                        SubscriptionSelectorView(
+                            viewModel: viewModel,
+                            selectedPlan: $selectedPlan
+                        )
+                        .padding(.horizontal, 20)
+                        .padding(.top, 25)
+                        
+                        Text("Cancel anytime")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(CMColor.secondaryText.opacity(0.6))
+                            .padding(.top, 25)
+                            .padding(.bottom, 20)
+                    }
+                }
+                
+                Spacer(minLength: 0)
+                
+                // --- Нижняя часть: Кнопка Продолжить и ссылки (Не скроллируются) ---
+                VStack(spacing: 0) {
+                    PaywallContinueButton(action: {
+                        viewModel.continueTapped(with: selectedPlan == .month ? .month : .week)
+                    })
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                    
+                    PaywallBottomLinksView(isPresented: $isPresented, viewModel: viewModel)
+                        .padding(.vertical, 10)
+                }
             }
-            .padding(.top, 15)
-            .padding(.leading, 10)
+        }
+        .onAppear {
+            // Появление кнопки закрытия через 2 секунды
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                self.closeButtonOpacity = 1.0
+            }
         }
     }
 }
 
-struct PaywallHeaderView: View {
-    var body: some View {
-        VStack(spacing: 8) {
-            Text("Premium Free")
-                .font(.system(size: 40, weight: .semibold))
-                .foregroundColor(CMColor.primary)
-            
-            Text("for 3 days")
-                .font(.system(size: 40, weight: .semibold))
-                .foregroundColor(CMColor.primary)
-        }
-    }
-}
-
-struct PaywallIconsBlockView: View {
-    var body: some View {
-        HStack(spacing: 20) {
-            IconWithText(imageName: "PayWallImege1", text: "16.4 Gb")
-            IconWithText(imageName: "PayWallImege2", text: "2.5 Gb")
-            IconWithText(imageName: "PayWallImege3", text: "0.2 Gb")
-        }
-    }
-}
-
-struct IconWithText: View {
-    let imageName: String
-    let text: String
+// MARK: - 1. Блок закрытия (Теперь простая View для Hiding/Showing через Opacity)
+struct CloseButtonView: View {
+    @Binding var isPresented: Bool
     
-    var iconSize: CGFloat {
-        return 100
-    }
-          
     var body: some View {
-        VStack(spacing: 0) {
-            Image(imageName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: iconSize, height: iconSize)
-                .foregroundColor(CMColor.iconPrimary)
-            
-            Text(text)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(CMColor.primaryText)
+        HStack {
+            Button(action: {
+                isPresented = false
+            }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 20))
+                    .foregroundColor(CMColor.secondaryText.opacity(0.5))
+                    .padding(10)
+            }
+            Spacer()
         }
+        .frame(width: 50, height: 50) // Фиксируем размер, чтобы H-Stack не съехал
     }
 }
 
-struct PaywallFeaturesTagView: View {
+
+// MARK: - 2. Блок маркетинга (Тайтл + Фичи) - Обновлен!
+struct PaywallMarketingBlockView: View {
+    // Новые, перефразированные фичи
     let features = [
-        "Secret folder for your media & contacts",
-        "Internet speed check",
-        "Ad-free",
-        "Fast cleanup. More space",
-        "Complete info about your phone"
+        "Uncover and eliminate hidden junk files",
+        "Identify and merge duplicate contacts effortlessly",
+        "Detect blurry photos and low-quality videos",
+        "Encrypt and secure your private media storage",
     ]
     
     var body: some View {
-        VStack(spacing: 10) {
-            FeatureTagView(text: features[0])
+        VStack(alignment: .leading, spacing: 16) {
             
-            HStack(spacing: 10) {
-                FeatureTagView(text: features[1])
-                FeatureTagView(text: features[2])
+            // Тайтл
+            Text("Unlock All Premium Features")
+                .font(.largeTitle.bold())
+                .foregroundColor(CMColor.primaryText)
+                .multilineTextAlignment(.leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 10) // Добавил небольшой отступ сверху
+            
+            // Блок с фичами
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(features, id: \.self) { feature in
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(CMColor.primary)
+                            .font(.system(size: 18))
+                        Text(feature)
+                            .font(.body)
+                            .foregroundColor(CMColor.primaryText)
+                            .fixedSize(horizontal: false, vertical: true) // Гарантирует перенос текста
+                    }
+                }
             }
-            
-            FeatureTagView(text: features[3])
-            FeatureTagView(text: features[4])
+            .padding(.horizontal, 20)
         }
     }
 }
 
-private struct FeatureTagView: View {
-    let text: String
-    
+// MARK: - 3. Блок Выбора Плана
+struct SubscriptionSelectorView: View {
+    @ObservedObject var viewModel: PaywallViewModel
+    @Binding var selectedPlan: PurchaseServiceProduct
+
     var body: some View {
-        Text(text)
-            .font(.system(size: 16, weight: .semibold))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(CMColor.secondary.opacity(0.1))
-            .cornerRadius(8)
-            .foregroundColor(CMColor.secondary)
+        HStack(spacing: 15) {
+            // КНОПКА НЕДЕЛЬНОЙ ПОДПИСКИ
+            PlanButton(
+                title: "Weekly",
+                price: viewModel.weekPrice,
+                subtitle: "Pay weekly",
+                plan: .week,
+                selectedPlan: $selectedPlan,
+                showBadge: false
+            )
+            .frame(minWidth: 0, maxWidth: .infinity)
+
+            // КНОПКА МЕСЯЧНОЙ ПОДПИСКИ (BEST OFFER)
+            PlanButton(
+                title: "Monthly",
+                price: viewModel.monthPrice,
+                subtitle: "(\(viewModel.monthPricePerWeek) / week)",
+                plan: .month,
+                selectedPlan: $selectedPlan,
+                showBadge: true
+            )
+            .frame(minWidth: 0, maxWidth: .infinity)
+        }
+        .frame(height: 150)
     }
 }
 
+// MARK: - Компонент кнопки плана
+struct PlanButton: View {
+    let title: String
+    let price: String
+    let subtitle: String
+    let plan: PurchaseServiceProduct
+    @Binding var selectedPlan: PurchaseServiceProduct
+    let showBadge: Bool
+
+    var isSelected: Bool {
+        selectedPlan == plan
+    }
+
+    var body: some View {
+        Button(action: {
+            selectedPlan = plan
+        }) {
+            ZStack(alignment: .top) {
+                
+                // Основной контент кнопки с фиксированной высотой для выравнивания
+                VStack(spacing: 8) {
+                    
+                    Spacer()
+                    
+                    Text(title)
+                        .font(.headline.bold())
+                        .foregroundColor(isSelected ? CMColor.primary : CMColor.primaryText)
+                    
+                    Text(price)
+                        .font(.title2.bold())
+                        .foregroundColor(CMColor.primaryText)
+                    
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundColor(CMColor.secondaryText)
+                    
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .background(
+                    RoundedRectangle(cornerRadius: 15)
+                        .fill(CMColor.surface)
+                        .shadow(color: CMColor.black.opacity(0.1), radius: 5, x: 0, y: 3)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 15)
+                        .stroke(isSelected ? CMColor.primary : CMColor.surface.opacity(0.5), lineWidth: isSelected ? 3 : 1)
+                )
+                .scaleEffect(isSelected ? 1.03 : 1.0)
+                .animation(.easeInOut(duration: 0.2), value: isSelected)
+                
+                // Бейдж "BEST OFFER" - поверх рамки
+                if showBadge {
+                    Text("BEST OFFER")
+                        .font(.caption.bold())
+                        .foregroundColor(CMColor.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(CMColor.primary)
+                        .cornerRadius(5)
+                        .offset(y: -10)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 4. Кнопка Продолжить (Без изменений)
 struct PaywallContinueButton: View {
     let action: () -> Void
     
@@ -181,6 +278,7 @@ struct PaywallContinueButton: View {
     }
 }
 
+// MARK: - 5. Нижние ссылки (Без изменений)
 struct PaywallBottomLinksView: View {
     @Binding var isPresented: Bool
     @ObservedObject var viewModel: PaywallViewModel

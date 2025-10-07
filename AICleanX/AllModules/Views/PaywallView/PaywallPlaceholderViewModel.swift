@@ -4,7 +4,7 @@ import Combine
 // todo test111
 enum UrlsConstants {
     static let privacy = ""
-    static let terms = ""
+    static let terms = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
 }
 
 // MARK: - PaywallViewModel: Handles the business logic for the paywall view
@@ -18,12 +18,8 @@ final class PaywallViewModel: ObservableObject {
     // MARK: - Published Properties
     
     @Published var weekPrice: String = "N/A"
-    @Published var month3Price: String = "N/A" // NEW
-    @Published var yearPrice: String = "N/A" // NEW
-    
-    @Published var weekPricePerDay: String = "N/A"
-    @Published var month3PricePerDay: String = "N/A" // NEW
-    @Published var yearPricePerDay: String = "N/A" // NEW
+    @Published var monthPrice: String = "N/A" // NEW
+    @Published var monthPricePerWeek: String = "N/A" // NEW
     
     // MARK: - Initialization
     
@@ -52,7 +48,6 @@ final class PaywallViewModel: ObservableObject {
         }
     }
     
-    /// Handles the restore purchases button tap action.
     @MainActor
     func restoreTapped() {
         purchaseService.restore() { [weak self] result in
@@ -60,8 +55,7 @@ final class PaywallViewModel: ObservableObject {
             
             if case .failure(let error) = result {
                 print("Error during restore: \(error?.localizedDescription ?? "Unknown error")")
-                // Still dismiss the paywall on restore failure as per common UX
-                self.dismissPaywall()
+                self.dismissPaywall() // todo test111 показать алерт?
                 return
             }
             
@@ -83,22 +77,14 @@ final class PaywallViewModel: ObservableObject {
     
     // MARK: - Private Methods
     
-    /// Asynchronously updates all price-related published properties.
     private func updatePrices() async {
-        // Wait for Apphud products to be fetched
-        // This simulates a slight delay that might occur in a real app
-        try? await Task.sleep(nanoseconds: 1_000_000_000)
-        
         await MainActor.run {
             self.weekPrice = purchaseService.localizedPrice(for: .week) ?? "N/A"
-            self.month3Price = purchaseService.localizedPrice(for: .month) ?? "N/A" // NEW
-            
-            self.weekPricePerDay = purchaseService.perDayPrice(for: .week)
-            self.month3PricePerDay = purchaseService.perDayPrice(for: .month) // NEW
+            self.monthPrice = purchaseService.localizedPrice(for: .month) ?? "N/A"
+            self.monthPricePerWeek = purchaseService.perWeekPrice(for: .month) ?? "N/A"
         }
     }
     
-    /// Dismisses the paywall view.
     private func dismissPaywall() {
         isPresentedBinding.wrappedValue = false
     }
