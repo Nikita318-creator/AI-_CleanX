@@ -27,7 +27,7 @@ struct MainView: View {
     @Binding var isPaywallPresented: Bool
     
     @State private var presentedView: CategoryViewType?
-    @State private var showSettingsView = false
+    @State private var showSwipeModeView = false
 
     init(isPaywallPresented: Binding<Bool>) {
         self._isPaywallPresented = isPaywallPresented
@@ -73,20 +73,20 @@ struct MainView: View {
                             }
                         }
                         
-//                        Spacer()
-//                        
-//                        Button(action: { showSettingsView = true }) {
-//                            ZStack {
-//                                Circle()
-//                                    .fill(CMColor.surface)
-//                                    .frame(width: 44, height: 44)
-//                                    .shadow(color: CMColor.black.opacity(0.08), radius: 4, x: 0, y: 2)
-//                                
-//                                Image(systemName: "gearshape.fill")
-//                                    .font(.system(size: 18))
-//                                    .foregroundColor(CMColor.iconSecondary)
-//                            }
-//                        }
+                        Spacer()
+                        
+                        Button(action: { showSwipeModeView = true }) {
+                            ZStack {
+                                Circle()
+                                    .fill(CMColor.surface)
+                                    .frame(width: 44, height: 44)
+                                    .shadow(color: CMColor.black.opacity(0.08), radius: 4, x: 0, y: 2)
+                                
+                                Image(systemName: "star.square.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(CMColor.iconSecondary)
+                            }
+                        }
                     }
                     .padding(.top, 12)
                     .padding(.horizontal, 20)
@@ -171,8 +171,8 @@ struct MainView: View {
                     )
                 }
             }
-            .fullScreenCover(isPresented: $showSettingsView) {
-                SettingsView(isPaywallPresented: $isPaywallPresented)
+            .fullScreenCover(isPresented: $showSwipeModeView) {
+                AIFeatureView(isPaywallPresented: $isPaywallPresented)
             }
         }
     }

@@ -76,7 +76,7 @@ struct SwipeOnboardingView: View {
                 .frame(width: 320, height: 320)
                 .blur(radius: 20)
             
-            Image("smartScan")
+            Image("AIScanImage")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 280, height: 280)

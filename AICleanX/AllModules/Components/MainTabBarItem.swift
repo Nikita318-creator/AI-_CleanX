@@ -7,7 +7,6 @@ extension AICleanSpaceViewModel.TabType {
         switch self {
         case .clean: return "Clean"
         case .dashboard: return "Dashboard"
-        case .star: return "Favorites"
         case .safeFolder: return "Safe Folder"
         }
     }
@@ -69,9 +68,6 @@ struct MainTabBarItem: View {
             // Иконка для аналитики/обзора
             // Используем chart.bar.fill, так как это более "отчетливая" иконка для дашборда
             return "chart.bar.fill"
-        case .star:
-            // Иконка для избранного (более строгая, квадратная)
-            return isSelected ? "star.square.fill" : "star.square"
         case .safeFolder:
             // Иконка для защищенной папки (более детализирована)
             return "lock.square.fill"

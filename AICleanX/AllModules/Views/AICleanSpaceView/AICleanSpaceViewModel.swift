@@ -9,7 +9,6 @@ final class AICleanSpaceViewModel: ObservableObject {
         case clean = "Clean"
         case dashboard = "Dashboard"
         case safeFolder = "Safe Folder"
-        case star = "Star"
     }
     
     // MARK: - Published Properties

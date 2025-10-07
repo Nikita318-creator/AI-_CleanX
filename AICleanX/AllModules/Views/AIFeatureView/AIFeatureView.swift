@@ -14,19 +14,36 @@ struct AIFeatureView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     headerView()
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 24)
-                    
-                    swipeModeSection()
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 16)
                         .padding(.bottom, 32)
                     
-                    categoriesGrid()
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 120)
+                    smartReviewCard()
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 28)
+                    
+                    if viewModel.hasSwipeResults {
+                        resultsReadyCard()
+                            .padding(.horizontal, 24)
+                            .padding(.bottom, 28)
+                    }
+                    
+                    categoriesSection()
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 140)
                 }
             }
-            .background(CMColor.background)
+            .background(
+                LinearGradient(
+                    colors: [
+                        CMColor.background,
+                        CMColor.background.opacity(0.98),
+                        CMColor.backgroundSecondary.opacity(0.3)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
             .navigationBarHidden(true)
         }
         .navigationViewStyle(StackNavigationViewStyle())
@@ -83,340 +100,383 @@ struct AIFeatureView: View {
         
     @ViewBuilder
     private func headerView() -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("AI-Powered Smart Scan")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(CMColor.primaryText)
-                
-                Spacer()
-                
-                Button(action: {
-                    isPaywallPresented = true
-                }) {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(CMColor.primaryLight)
-                            
-                        Text("Premium")
-                            .fontWeight(.semibold)
-                            .foregroundColor(CMColor.primaryLight)
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [CMColor.primary, CMColor.accent],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        
+                        Text("AI Gallery")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundColor(CMColor.primaryText)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(CMColor.backgroundSecondary)
-                    .clipShape(Capsule())
+                    
+                    Text("Intelligence")
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundColor(CMColor.primaryText)
                 }
             }
             
-            // **Изменение: Описание Header**
-            Text("Our AI algorithms analyze your gallery using advanced technology to find low-quality media and clutter.")
-                .font(.subheadline)
-                .foregroundColor(CMColor.secondaryText)
+            Text("AI analyze your photos to detect clutter, duplicates, and low-quality content instantly")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(CMColor.secondaryText.opacity(0.85))
+                .lineSpacing(4)
         }
-        .padding(.top, 12)
     }
         
     @ViewBuilder
-    private func swipeModeSection() -> some View {
-        VStack(spacing: 20) {
-            HStack(spacing: 16) {
+    private func smartReviewCard() -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 18) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(CMColor.backgroundSecondary)
-                        .frame(width: 80, height: 80)
-                        
-                    Image("smartScan")
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    CMColor.primary.opacity(0.15),
+                                    CMColor.accent.opacity(0.1)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 72, height: 72)
+                    
+                    Image("AIScanImage")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: 70, maxHeight: 70)
+                        .frame(width: 44, height: 44)
                 }
                     
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("AI Smart Review")
-                        .font(.title2)
-                        .fontWeight(.bold)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Smart Review")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
                         .foregroundColor(CMColor.primaryText)
                         
-                    // **Изменение: Описание секции**
-                    Text("AI Mode lets you quickly review and confirm selections based on our intelligent scanning recommendations.")
-                        .font(.subheadline)
+                    Text("Swipe through AI suggestions and confirm what to keep or remove")
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundColor(CMColor.secondaryText)
-                        .multilineTextAlignment(.leading)
+                        .lineSpacing(2)
                 }
                     
-                Spacer()
+                Spacer(minLength: 0)
             }
-                
+            .padding(20)
+            
+            Divider()
+                .background(CMColor.secondaryText.opacity(0.1))
+            
             Button(action: {
+                let impact = UIImpactFeedbackGenerator(style: .medium)
+                impact.impactOccurred()
+                
                 if !viewModel.hasActiveSubscription {
                     isPaywallPresented = true
                 } else {
                     showSwipeOnboarding = true
                 }
             }) {
-                HStack {
-                    Text("Launch AI Review")
-                        .fontWeight(.semibold)
+                HStack(spacing: 12) {
+                    Image(systemName: "wand.and.stars")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [CMColor.primary, CMColor.accent],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                    
+                    Text("Start AI Review")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(CMColor.primaryText)
                         
                     Spacer()
                         
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(CMColor.primary)
                 }
-                .foregroundColor(CMColor.primary)
                 .padding(.horizontal, 20)
-                .padding(.vertical, 16)
-                .background(CMColor.backgroundSecondary)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-                
-            if viewModel.hasSwipeResults {
-                Button(action: {
-                    let impact = UIImpactFeedbackGenerator(style: .medium)
-                    impact.impactOccurred()
-                        
-                    let resultsData = viewModel.getSwipeResultsData()
-                    presentedResultsView = resultsData
-                }) {
-                    HStack(spacing: 16) {
-                        ZStack {
-                            Circle()
-                                .fill(CMColor.backgroundGradient.opacity(0.2))
-                                .frame(width: 50, height: 50)
-                                
-                            Image(systemName: "chart.bar.fill")
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundStyle(CMColor.backgroundGradient)
-                        }
-                            
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 6) {
-                                Text("Your AI Report is Ready")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(CMColor.white)
-                                        
-                                Image(systemName: "sparkles")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(CMColor.accent.opacity(0.8))
-                            }
-                                
-                            Text("\(viewModel.swipeResultsSummary)")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(CMColor.white.opacity(0.9))
-                        }
-                            
-                        Spacer()
-                            
-                        ZStack {
-                            Circle()
-                                .fill(CMColor.white.opacity(0.2))
-                                .frame(width: 32, height: 32)
-                                
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(CMColor.white)
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 18)
-                    .background(
-                        CMColor.primaryGradient
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(
-                        color: CMColor.primaryDark.opacity(0.4),
-                        radius: 12,
-                        x: 0,
-                        y: 6
-                    )
-                    .shadow(
-                        color: CMColor.accent.opacity(0.3),
-                        radius: 8,
-                        x: 0,
-                        y: 4
-                    )
-                }
-                .buttonStyle(PlainButtonStyle())
+                .padding(.vertical, 18)
             }
         }
+        .background(CMColor.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .shadow(color: CMColor.primaryDark.opacity(0.08), radius: 20, x: 0, y: 8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .strokeBorder(CMColor.secondaryText.opacity(0.06), lineWidth: 1)
+        )
+    }
+    
+    @ViewBuilder
+    private func resultsReadyCard() -> some View {
+        Button(action: {
+            let impact = UIImpactFeedbackGenerator(style: .medium)
+            impact.impactOccurred()
+                
+            let resultsData = viewModel.getSwipeResultsData()
+            presentedResultsView = resultsData
+        }) {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(CMColor.white.opacity(0.25))
+                        .frame(width: 56, height: 56)
+                        
+                    Image(systemName: "chart.bar.doc.horizontal.fill")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(CMColor.white)
+                }
+                    
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Text("Review Complete")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(CMColor.white)
+                            
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(CMColor.white.opacity(0.9))
+                    }
+                        
+                    Text(viewModel.swipeResultsSummary)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(CMColor.white.opacity(0.85))
+                }
+                    
+                Spacer()
+                    
+                Image(systemName: "arrow.right.circle.fill")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(CMColor.white.opacity(0.9))
+            }
+            .padding(.horizontal, 22)
+            .padding(.vertical, 20)
+            .background(
+                LinearGradient(
+                    colors: [
+                        CMColor.primary,
+                        CMColor.primaryDark
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .shadow(color: CMColor.primary.opacity(0.35), radius: 20, x: 0, y: 10)
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [CMColor.white.opacity(0.3), CMColor.white.opacity(0.1)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
         
     @ViewBuilder
-    private func categoriesGrid() -> some View {
-        let cardSize = UIScreen.main.bounds.width - 40
+    private func categoriesSection() -> some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack {
+                Text("Detection Categories")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundColor(CMColor.primaryText)
+                
+                Spacer()
+            }
+            .padding(.horizontal, 4)
             
-        VStack(spacing: 16) {
-            Button {
-                if !viewModel.hasActiveSubscription {
-                    isPaywallPresented = true
-                } else {
-                    let sections = viewModel.getSections(for: .image(.similar))
-                    if !sections.isEmpty {
-                        presentedSwipeView = SwipedPhotoModel(sections: sections, type: .similar)
-                    }
-                }
-            } label: {
-                getItem(
-                    for: .similar,
-                    // **Изменение: Заголовок секции**
-                    title: "AI-Identified Similar Photos",
+            VStack(spacing: 14) {
+                categoryCard(
+                    icon: "photo.stack.fill",
+                    iconGradient: [Color(hex: "667EEA"), Color(hex: "764BA2")],
+                    title: "Similar Photos",
+                    subtitle: "AI-grouped visual matches",
                     image: viewModel.similarPreview,
                     count: viewModel.similarCount,
-                    sizeStr: formatMegabytes(viewModel.similarMegabytes),
-                    size: cardSize
+                    size: formatMegabytes(viewModel.similarMegabytes),
+                    type: .similar
                 )
-            }
-            .buttonStyle(.plain)
                 
-            Button {
-                if !viewModel.hasActiveSubscription {
-                    isPaywallPresented = true
-                } else {
-                    let sections = viewModel.getSections(for: .image(.blurred))
-                    if !sections.isEmpty {
-                        presentedSwipeView = SwipedPhotoModel(sections: sections, type: .blurred)
-                    }
-                }
-            } label: {
-                getItem(
-                    for: .blurred,
-                    // **Изменение: Заголовок секции**
-                    title: "AI-Sorted Low-Quality Images",
+                categoryCard(
+                    icon: "eye.slash.fill",
+                    iconGradient: [Color(hex: "F093FB"), Color(hex: "F5576C")],
+                    title: "Blurry & Low Quality",
+                    subtitle: "Neural clarity detection",
                     image: viewModel.blurredPreview,
                     count: viewModel.blurredCount,
-                    sizeStr: formatMegabytes(viewModel.blurredMegabytes),
-                    size: cardSize
+                    size: formatMegabytes(viewModel.blurredMegabytes),
+                    type: .blurred
                 )
-            }
-            .buttonStyle(.plain)
                 
-            Button {
-                if !viewModel.hasActiveSubscription {
-                    isPaywallPresented = true
-                } else {
-                    let sections = viewModel.getSections(for: .image(.duplicates))
-                    if !sections.isEmpty {
-                        presentedSwipeView = SwipedPhotoModel(sections: sections, type: .duplicates)
-                    }
-                }
-            } label: {
-                getItem(
-                    for: .duplicates,
-                    // **Изменение: Заголовок секции**
-                    title: "AI-Detected Exact Duplicate Files",
+                categoryCard(
+                    icon: "doc.on.doc.fill",
+                    iconGradient: [Color(hex: "4FACFE"), Color(hex: "00F2FE")],
+                    title: "Exact Duplicates",
+                    subtitle: "Byte-level comparison",
                     image: viewModel.duplicatesPreview,
                     count: viewModel.duplicatesCount,
-                    sizeStr: formatMegabytes(viewModel.duplicatesMegabytes),
-                    size: cardSize
+                    size: formatMegabytes(viewModel.duplicatesMegabytes),
+                    type: .duplicates
                 )
-            }
-            .buttonStyle(.plain)
                 
-            Button {
-                if !viewModel.hasActiveSubscription {
-                    isPaywallPresented = true
-                } else {
-                    let sections = viewModel.getSections(for: .image(.screenshots))
-                    if !sections.isEmpty {
-                        presentedSwipeView = SwipedPhotoModel(sections: sections, type: .screenshots)
-                    }
-                }
-            } label: {
-                getItem(
-                    for: .screenshots,
-                    // **Заголовок секции оставлен без изменений**
-                    title: "AI-Detected Screenshots",
+                categoryCard(
+                    icon: "rectangle.on.rectangle.fill",
+                    iconGradient: [Color(hex: "FA709A"), Color(hex: "FEE140")],
+                    title: "Screenshots",
+                    subtitle: "UI pattern recognition",
                     image: viewModel.screenshotsPreview,
                     count: viewModel.screenshotsCount,
-                    sizeStr: formatMegabytes(viewModel.screenshotsMegabytes),
-                    size: cardSize
+                    size: formatMegabytes(viewModel.screenshotsMegabytes),
+                    type: .screenshots
                 )
             }
-            .buttonStyle(.plain)
         }
     }
     
-    private func getItem(
-        for type: ScanItemType,
+    @ViewBuilder
+    private func categoryCard(
+        icon: String,
+        iconGradient: [Color],
         title: String,
+        subtitle: String,
         image: UIImage?,
         count: Int,
-        sizeStr: String,
-        size: CGFloat
+        size: String,
+        type: ScanItemType
     ) -> some View {
-        ZStack {
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: size, height: size)
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
-            } else {
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(CMColor.backgroundSecondary)
-                    .frame(width: size, height: size)
-            }
+        Button {
+            let impact = UIImpactFeedbackGenerator(style: .light)
+            impact.impactOccurred()
             
-            VStack {
-                HStack {
-                    Text(title)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(CMColor.primary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(CMColor.surface.opacity(0.8))
-                        .clipShape(Capsule())
-                        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+            if !viewModel.hasActiveSubscription {
+                isPaywallPresented = true
+            } else {
+                let actualType: AICleanServiceType.ImageType
+                if type == .blurred {
+                    actualType = .blurred
+                } else if type == .duplicates {
+                    actualType = .duplicates
+                } else if type == .similar {
+                    actualType = .similar
+                } else if type == .screenshots {
+                    actualType = .screenshots
+                } else {
+                    actualType = .similar
+                }
                     
-                    Spacer()
+                let sections = viewModel.getSections(for: .image(actualType))
+                if !sections.isEmpty {
+                    presentedSwipeView = SwipedPhotoModel(sections: sections, type: type)
+                }
+            }
+        } label: {
+            HStack(spacing: 16) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: iconGradient.map { $0.opacity(0.15) },
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 64, height: 64)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 26, weight: .semibold))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: iconGradient,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+                
+                // Content
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(CMColor.primaryText)
+                    
+                    Text(subtitle)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(CMColor.secondaryText)
+                    
+                    HStack(spacing: 12) {
+                        Label {
+                            Text("\(count)")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(CMColor.secondaryText)
+                        } icon: {
+                            Image(systemName: "photo")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(CMColor.secondaryText.opacity(0.7))
+                        }
+                        
+                        Label {
+                            Text(size)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(CMColor.secondaryText)
+                        } icon: {
+                            Image(systemName: "arrow.down.circle")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(CMColor.secondaryText.opacity(0.7))
+                        }
+                    }
                 }
                 
                 Spacer()
                 
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(getItemCountText(count: count))
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(CMColor.secondaryText)
-                        
-                        Text(formatMegabytes(viewModel.similarMegabytes))
-                            .font(.system(size: 12, weight: .regular))
-                            .foregroundColor(CMColor.secondaryText)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(CMColor.surface.opacity(0.8))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    
-                    Spacer()
+                // Thumbnail or Arrow
+                if let image = image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 56, height: 56)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(CMColor.secondaryText.opacity(0.1), lineWidth: 1)
+                        )
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(CMColor.secondaryText.opacity(0.4))
                 }
             }
-            .padding(20)
+            .padding(18)
+            .background(CMColor.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .shadow(color: CMColor.primaryDark.opacity(0.06), radius: 12, x: 0, y: 4)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .strokeBorder(CMColor.secondaryText.opacity(0.06), lineWidth: 1)
+            )
         }
-        .frame(width: size, height: size)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(CMColor.backgroundSecondary)
-        )
-        .clipped()
-        .shadow(color: CMColor.primaryDark.opacity(0.3), radius: 10, x: 0, y: 5)
-    }
-    
-    private func getItemCountText(count: Int) -> String {
-        if count == 0 {
-            return "No items"
-        } else {
-            return "\(count) items found"
-        }
+        .buttonStyle(.plain)
     }
     
     private func formatMegabytes(_ megabytes: Double) -> String {
         if megabytes < 1 {
-            return String(format: "%.1f KB", megabytes * 1024)
+            return String(format: "%.0f KB", megabytes * 1024)
         } else if megabytes < 1024 {
             return String(format: "%.0f MB", megabytes)
         } else {

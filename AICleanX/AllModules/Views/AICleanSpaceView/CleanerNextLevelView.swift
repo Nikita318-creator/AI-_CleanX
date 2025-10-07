@@ -25,9 +25,7 @@ struct CleanerNextLevelView: View {
                     case .clean:
                         MainView(isPaywallPresented: $isPaywallPresented)
                     case .dashboard:
-                        SpeedTestView(isPaywallPresented: $isPaywallPresented)
-                    case .star:
-                        AIFeatureView(isPaywallPresented: $isPaywallPresented)
+                        SpeedTestView(isPaywallPresented: $isPaywallPresented)                        
                     case .safeFolder:
                         safeFolder
                     }
