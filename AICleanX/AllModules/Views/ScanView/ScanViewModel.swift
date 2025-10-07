@@ -311,7 +311,7 @@ final class MainViewModel: ObservableObject {
             .sink { [weak self] megabytes, counts in
                 self?.counts = counts
                 self?.megabytes = megabytes
-                self?.subtitle = "AI analysis shows (counts.total) items (a total of (megabytes.total.formatAsFileSize())) that can be cleaned for optimization."
+                self?.subtitle = "AI analysis shows \(counts.total) items (a total of \(megabytes.total.formatAsFileSize())) that can be cleaned for optimization."
             }
             .store(in: &cancellables)
 

@@ -54,7 +54,7 @@ struct MainView: View {
                     // Compact Header
                     HStack(alignment: .center) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("IceClean")
+                            Text("IceClean AI")
                                 .font(.system(size: 32, weight: .bold))
                                 .foregroundColor(CMColor.primaryText)
                             

@@ -278,7 +278,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AICleanX/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "IceClean Ai";
+				INFOPLIST_KEY_CFBundleDisplayName = "IceClean AI";
 				INFOPLIST_KEY_NSContactsUsageDescription = "This app needs access to your contacts to safely store selected contacts in encrypted storage and help you manage duplicates or outdated entries.\n";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app needs access to your photos to scan for duplicates, blurry images, and screenshots to help you clean up storage.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -316,7 +316,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AICleanX/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "IceClean Ai";
+				INFOPLIST_KEY_CFBundleDisplayName = "IceClean AI";
 				INFOPLIST_KEY_NSContactsUsageDescription = "This app needs access to your contacts to safely store selected contacts in encrypted storage and help you manage duplicates or outdated entries.\n";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app needs access to your photos to scan for duplicates, blurry images, and screenshots to help you clean up storage.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
