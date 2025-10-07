@@ -11,6 +11,9 @@ struct SafeStorageView: View {
     @State private var showDocumentsView: Bool = false
     @Binding var isPaywallPresented: Bool
 
+    // НОВОЕ СОСТОЯНИЕ для отображения экрана смены пароля
+    @State private var showChangePasscodeView: Bool = false
+
     // Simplified recent files logic
     private var recentFiles: [SafeStorageFile] {
         var files: [SafeStorageFile] = []
@@ -135,6 +138,21 @@ struct SafeStorageView: View {
             DocListView()
                 .environmentObject(safeStorageManager)
         }
+        // НОВЫЙ fullScreenCover для смены пароля
+        .fullScreenCover(isPresented: $showChangePasscodeView) {
+            PINView(
+                onTabBarVisibilityChange: { _ in },
+                onCodeEntered: { code in
+                    print("New passcode saved: \(code)")
+                    // Здесь вы, вероятно, должны вызвать метод сохранения кода
+                },
+                onBackButtonTapped: {
+                    showChangePasscodeView = false
+                },
+                shouldAutoDismiss: true,
+                isChangingPasscode: true // Флаг, указывающий, что это режим смены
+            )
+        }
     }
     
     // MARK: - Subviews
@@ -145,16 +163,35 @@ struct SafeStorageView: View {
                 .font(.largeTitle.bold())
                 // Использование CMColor.primaryText вместо .black
                 .foregroundColor(CMColor.primaryText)
+            
             Spacer()
+            
+            // НОВАЯ КНОПКА
+            Button {
+                showChangePasscodeView = true
+            } label: {
+                Text("Change\nPasscode")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(CMColor.primary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(CMColor.primary, lineWidth: 1.5)
+                    )
+            }
         }
     }
     
+    // ... (остальные subviews без изменений)
+    
     private func searchBar() -> some View {
+        // ... (код без изменений)
         HStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
                 // Использование CMColor.iconSecondary вместо .gray
                 .foregroundColor(CMColor.iconSecondary)
-            
+                
             TextField("Search your files...", text: $searchText)
                 // Использование CMColor.primaryText вместо .black
                 .foregroundColor(CMColor.primaryText)
@@ -162,7 +199,7 @@ struct SafeStorageView: View {
                 .accentColor(CMColor.accent)
                 .font(.body)
                 .focused($isSearchFocused)
-            
+                
             if isSearchFocused && !searchText.isEmpty {
                 Button(action: {
                     searchText = ""
@@ -182,6 +219,7 @@ struct SafeStorageView: View {
     }
     
     private func categoryCardsView() -> some View {
+        // ... (код без изменений)
         VStack(spacing: 16) {
             ForEach(categories) { category in
                 HStack(spacing: 12) {
@@ -193,22 +231,22 @@ struct SafeStorageView: View {
                         // Использование CMColor.backgroundSecondary вместо category.color.opacity(0.1)
                         .background(CMColor.backgroundSecondary)
                         .cornerRadius(12)
-                    
+                        
                     // Title and subtitle
                     VStack(alignment: .leading, spacing: 4) {
                         Text(category.title)
                             .font(.headline.bold())
                             // Использование CMColor.primaryText вместо .black
                             .foregroundColor(CMColor.primaryText)
-                        
+                            
                         Text(category.count)
                             .font(.subheadline)
                             // Использование CMColor.secondaryText вместо .gray
                             .foregroundColor(CMColor.secondaryText)
                     }
-                    
+                        
                     Spacer() // Pushes the content to the left
-                    
+                        
                     // Chevron icon
                     Image(systemName: "chevron.right")
                         // Использование CMColor.iconSecondary вместо .gray
@@ -237,6 +275,7 @@ struct SafeStorageView: View {
     }
     
     private func lastAddedSection() -> some View {
+        // ... (код без изменений)
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Last Added")
@@ -245,7 +284,7 @@ struct SafeStorageView: View {
                     .foregroundColor(CMColor.primaryText)
                 Spacer()
             }
-            
+                
             if recentFiles.isEmpty {
                 Text("No recent files added.")
                     // Использование CMColor.secondaryText вместо .gray
@@ -261,7 +300,7 @@ struct SafeStorageView: View {
                 VStack(spacing: 0) {
                     ForEach(Array(recentFiles.enumerated()), id: \.offset) { index, file in
                         fileRow(file: file)
-                        
+                            
                         if index < recentFiles.count - 1 {
                             // Divider, по умолчанию серый, но можно не менять, если он устраивает
                             Divider()
@@ -278,6 +317,7 @@ struct SafeStorageView: View {
     }
     
     private func fileRow(file: SafeStorageFile) -> some View {
+        // ... (код без изменений)
         HStack(spacing: 16) {
             Image(systemName: file.icon)
                 .font(.system(size: 20, weight: .medium))
@@ -287,15 +327,15 @@ struct SafeStorageView: View {
                 // Использование CMColor.backgroundSecondary вместо Color(UIColor.systemGray6)
                 .background(CMColor.backgroundSecondary)
                 .cornerRadius(10)
-            
+                
             Text(file.name)
                 .font(.body)
                 // Использование CMColor.primaryText вместо .black
                 .foregroundColor(CMColor.primaryText)
                 .lineLimit(1)
-            
+                
             Spacer()
-            
+                
             Image(systemName: "chevron.right")
                 // Использование CMColor.iconSecondary вместо .gray
                 .foregroundColor(CMColor.iconSecondary)

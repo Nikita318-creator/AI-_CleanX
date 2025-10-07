@@ -30,8 +30,6 @@ struct CleanerNextLevelView: View {
                         AIFeatureView(isPaywallPresented: $isPaywallPresented)
                     case .safeFolder:
                         safeFolder
-                    case .backup:
-                        BackupView()
                     }
                 }
                 .onChange(of: viewModel.currentSelectedTab) { newValue in

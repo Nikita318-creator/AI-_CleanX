@@ -6,11 +6,10 @@ import Photos
 @MainActor
 final class AICleanSpaceViewModel: ObservableObject {
     enum TabType: String, CaseIterable {
-        case safeFolder = "Safe Folder"
-        case dashboard = "Dashboard"
         case clean = "Clean"
+        case dashboard = "Dashboard"
+        case safeFolder = "Safe Folder"
         case star = "Star"
-        case backup = "Backup"
     }
     
     // MARK: - Published Properties

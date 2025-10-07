@@ -9,7 +9,6 @@ extension AICleanSpaceViewModel.TabType {
         case .dashboard: return "Dashboard"
         case .star: return "Favorites"
         case .safeFolder: return "Safe Folder"
-        case .backup: return "Backup"
         }
     }
 }
@@ -76,9 +75,6 @@ struct MainTabBarItem: View {
         case .safeFolder:
             // Иконка для защищенной папки (более детализирована)
             return "lock.square.fill"
-        case .backup:
-            // Иконка для облачного хранилища/бэкапа
-            return "cloud.fill"
         }
     }
 }
