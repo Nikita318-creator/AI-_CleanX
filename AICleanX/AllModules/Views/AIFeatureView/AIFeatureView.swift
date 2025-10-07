@@ -5,6 +5,8 @@ struct AIFeatureView: View {
     @StateObject private var viewModel = AIFeatureViewModel()
     @Binding var isPaywallPresented: Bool
     
+    @Environment(\.dismiss) var dismiss
+
     @State private var presentedSwipeView: SwipedPhotoModel?
     @State private var presentedResultsView: AICleanResultSwipeData?
     @State private var showSwipeOnboarding = false
@@ -101,6 +103,31 @@ struct AIFeatureView: View {
     @ViewBuilder
     private func headerView() -> some View {
         VStack(alignment: .leading, spacing: 16) {
+            
+            // MARK: - Header with Back Button (Стилизовано по вашему примеру)
+            HStack {
+                Button(action: {
+                    // Действие: закрывает текущий экран
+                    dismiss()
+                }) {
+                    HStack(spacing: 6) { // Используем 6 для spacing
+                        Image(systemName: "chevron.left") // Стрелка "назад"
+                            .font(.system(size: 17, weight: .semibold)) // Размер 17, жирный
+                            .foregroundColor(CMColor.primary) // Цвет CMColor.primary
+                            
+                        Text("Go Back") // Текст "Go Back" (как в вашем примере)
+                            .font(.system(size: 17, weight: .regular)) // Размер 17, обычный
+                            .foregroundColor(CMColor.primary) // Цвет CMColor.primary
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                Spacer() // Отправляет кнопку влево
+            }
+            .padding(.top, 0) // Отступ сверху для отступа от края Safe Area
+            .padding(.bottom, 6) // Отступ между кнопкой и заголовком
+            
+            // Оригинальный блок заголовка (начинается под кнопкой)
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
@@ -113,18 +140,15 @@ struct AIFeatureView: View {
                                     endPoint: .bottomTrailing
                                 )
                             )
-                        
-                        Text("AI Gallery")
+                            
+                        Text("AI Gallery Intelligence")
                             .font(.system(size: 32, weight: .bold, design: .rounded))
                             .foregroundColor(CMColor.primaryText)
                     }
-                    
-                    Text("Intelligence")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundColor(CMColor.primaryText)
                 }
             }
             
+            // Оригинальный блок описания
             Text("AI analyze your photos to detect clutter, duplicates, and low-quality content instantly")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(CMColor.secondaryText.opacity(0.85))
