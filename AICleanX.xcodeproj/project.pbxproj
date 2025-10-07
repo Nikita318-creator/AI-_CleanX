@@ -14,9 +14,22 @@
 		1013826E2E942F4E00507C44 /* AICleanX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AICleanX.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		1013869A2E9430F900507C44 /* Exceptions for "AICleanX" folder in "AICleanX" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 1013826D2E942F4E00507C44 /* AICleanX */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		101382702E942F4E00507C44 /* AICleanX */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				1013869A2E9430F900507C44 /* Exceptions for "AICleanX" folder in "AICleanX" target */,
+			);
 			path = AICleanX;
 			sourceTree = "<group>";
 		};
@@ -264,6 +277,7 @@
 				DEVELOPMENT_TEAM = CL672Q3QTU;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AICleanX/Info.plist;
 				INFOPLIST_KEY_NSContactsUsageDescription = "This app needs access to your contacts to safely store selected contacts in encrypted storage and help you manage duplicates or outdated entries.\n";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app needs access to your photos to scan for duplicates, blurry images, and screenshots to help you clean up storage.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -300,6 +314,7 @@
 				DEVELOPMENT_TEAM = CL672Q3QTU;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AICleanX/Info.plist;
 				INFOPLIST_KEY_NSContactsUsageDescription = "This app needs access to your contacts to safely store selected contacts in encrypted storage and help you manage duplicates or outdated entries.\n";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app needs access to your photos to scan for duplicates, blurry images, and screenshots to help you clean up storage.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
