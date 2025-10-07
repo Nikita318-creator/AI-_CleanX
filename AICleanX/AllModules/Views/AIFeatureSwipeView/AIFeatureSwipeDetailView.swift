@@ -160,7 +160,7 @@ struct AIFeatureSwipeDetailView: View {
                         dismiss()
                     },
                     onContinueSwiping: {
-                        dismiss()
+//                        dismiss()
                     }
                 )
             }
@@ -213,12 +213,12 @@ struct AIFeatureSwipeDetailView: View {
                         
                         Text("Smart Cleanup")
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(CMColor.white)
+                            .foregroundStyle(CMColor.primaryText)
                     }
                     
                     Text("\(min(photoIndex + 1, allImageModels.count)) of \(allImageModels.count)")
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(CMColor.white.opacity(0.5))
+                        .foregroundStyle(CMColor.primaryText.opacity(0.5))
                 }
                 
                 Spacer()
@@ -236,7 +236,7 @@ struct AIFeatureSwipeDetailView: View {
                             Capsule()
                                 .fill(
                                     // Градиент для кнопки "Done" - используем secondaryGradient
-                                    CMColor.secondaryGradient
+                                    CMColor.border
                                 )
                         )
                 }
@@ -248,7 +248,7 @@ struct AIFeatureSwipeDetailView: View {
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(CMColor.white.opacity(0.1))
+                        .fill(CMColor.primaryText.opacity(0.1))
                         .frame(height: 4)
                     
                     Capsule()
@@ -608,11 +608,11 @@ struct AIFeatureSwipeDetailView: View {
             HStack {
                 Image(systemName: "photo.stack")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(CMColor.white.opacity(0.5))
+                    .foregroundStyle(CMColor.primaryText.opacity(0.5))
                 
                 Text("Swipe or tap to review")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(CMColor.white.opacity(0.5))
+                    .foregroundStyle(CMColor.primaryText.opacity(0.5))
                 
                 Spacer()
                 

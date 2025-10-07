@@ -1,7 +1,7 @@
 import SwiftUI
 import Photos
-// Возможно, потребуется импорт для VisualEffectView, например:
-// import CustomUIComponents
+import UIKit // Для UIImpactFeedbackGenerator
+// import CustomUIComponents // Предполагается, что здесь объявлен VisualEffectView
 
 struct ResultsAIFeatureSwipePopup: View {
     let deleteCount: Int
@@ -12,75 +12,82 @@ struct ResultsAIFeatureSwipePopup: View {
     @State private var showContent = false
     @State private var backgroundOpacity = 0.0
     
+    // Новая функция для закрытия и продолжения свайпинга
+    private func dismissPopup() {
+        let impact = UIImpactFeedbackGenerator(style: .light)
+        impact.impactOccurred()
+        
+        withAnimation(.easeIn(duration: 0.2)) {
+            backgroundOpacity = 0
+            showContent = false
+        }
+        
+        // 1. Сначала установить привязку в false, чтобы скрыть попап
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            self.isPresented = false // <--- ДОБАВЬТЕ ЭТО
+        }
+        
+        // 2. Затем вызвать onContinueSwiping() (что, вероятно, просто сигнализирует родителю о продолжении свайпа)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+//            onContinueSwiping() // <--- Этот экшн должен только переходить к следующему элементу свайпа, НО НЕ ЗАКРЫВАТЬ ВЕСЬ ЭКРАН.
+        }
+    }
+
     var body: some View {
-        ZStack {
-            // Предполагается, что CMColor.black и VisualEffectView доступны
-            CMColor.black
-                .opacity(backgroundOpacity)
+        ZStack(alignment: .bottom) { // ПРИВЯЗКА КАРТОЧКИ К НИЗУ ЭКРАНА
+            
+            // 1. Легкий оверлей (затемнение фона)
+            CMColor.black // ИСПОЛЬЗУЕМ ВАШ ГЛОБАЛЬНЫЙ ЦВЕТ
+                .opacity(backgroundOpacity * 0.4) // Уменьшаем непрозрачность затемнения
                 .ignoresSafeArea()
                 .onTapGesture {
                     dismissPopup()
                 }
             
-            // Заглушка для VisualEffectView, если она не определена в этом scope
-            // Если VisualEffectView определена, используйте ее:
-            // VisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
-            Color.clear // Заменил на Color.clear для билда, если VisualEffectView неизвестна
-                .background(.ultraThinMaterial) // Использование стандартного эффекта размытия SwiftUI
-                .opacity(backgroundOpacity)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    dismissPopup()
-                }
-            
+            // 2. Карточка-баннер (Bottom Sheet)
             VStack(spacing: 24) {
-                VStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(LinearGradient(
-                                colors: [CMColor.primary.opacity(0.2), CMColor.accent.opacity(0.2)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ))
-                            .frame(width: 80, height: 80)
-                            .shadow(color: CMColor.primary.opacity(0.3), radius: 8, x: 0, y: 4)
-                        
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 40, weight: .medium))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [CMColor.primary, CMColor.accent],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                    }
+                
+                // --- Секция Заголовка и Описания (HStack для выравнивания по левому краю) ---
+                HStack(alignment: .top, spacing: 12) {
                     
-                    VStack(spacing: 8) {
-                        // ИЗМЕНЕНИЕ: Акцент на завершении AI-скана
-                        Text("AI Scan Phase Complete!")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(CMColor.primaryText)
-                            .multilineTextAlignment(.center)
+                    // Иконка: Простой акцент
+                    Image(systemName: "sparkles") // Новый, более минималистичный символ
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundStyle(CMColor.accent) // ИСПОЛЬЗУЕМ ВАШ ЦВЕТ
+                        .padding(.top, 2)
                         
-                        // ИЗМЕНЕНИЕ: Акцент на том, что AI пометил файлы как "clutter"
-                        Text("The AI analysis marked \(deleteCount) photo\(deleteCount == 1 ? "" : "s") as clutter. Review the cleanup recommendations?")
-                            .font(.body)
-                            .foregroundColor(CMColor.secondaryText)
-                            .multilineTextAlignment(.center)
+                    // Текстовый блок (выравнивание по левому краю)
+                    VStack(alignment: .leading, spacing: 4) {
+                        
+                        // Новый заголовок
+                        Text("Cleanup Ready! 🚀")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(CMColor.primaryText) // ИСПОЛЬЗУЕМ ВАШ ЦВЕТ
+                            .multilineTextAlignment(.leading)
+                        
+                        // Новый подзаголовок
+                        Text("AI found \(deleteCount) potential clutter photo\(deleteCount == 1 ? "" : "s"). Review and confirm removal now?")
+                            .font(.subheadline)
+                            .foregroundColor(CMColor.secondaryText) // ИСПОЛЬЗУЕМ ВАШ ЦВЕТ
+                            .multilineTextAlignment(.leading)
                             .lineLimit(3)
                     }
+                    
+                    Spacer(minLength: 0)
                 }
-                
-                VStack(spacing: 12) {
+
+                // --- Секция Кнопок (CTA) ---
+                VStack(spacing: 8) {
+                    
+                    // 1. Основная кнопка (Review & Clean Up)
                     Button {
                         let impact = UIImpactFeedbackGenerator(style: .medium)
                         impact.impactOccurred()
                         
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                            showContent = false
+                        withAnimation(.easeIn(duration: 0.2)) {
                             backgroundOpacity = 0
+                            showContent = false
                         }
                         
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -88,80 +95,73 @@ struct ResultsAIFeatureSwipePopup: View {
                         }
                     } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: "eye.fill")
+                            Image(systemName: "trash.fill") // Новая, более подходящая иконка
                                 .font(.system(size: 16, weight: .semibold))
-                                
-                            // ИЗМЕНЕНИЕ: Профессиональный CTA
-                            Text("View AI Cleanup Report (\(deleteCount) Items)")
-                                .font(.system(size: 17, weight: .semibold))
+                            Text("Review & Clean Up (\(deleteCount))") // Новый текст
+                                .font(.body)
+                                .fontWeight(.semibold)
                         }
-                        .foregroundColor(CMColor.white)
+                        .foregroundColor(CMColor.white) // ИСПОЛЬЗУЕМ ВАШ ЦВЕТ
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
+                        .frame(height: 52) // Более тонкая кнопка
                         .background(
                             LinearGradient(
-                                colors: [CMColor.primary, CMColor.accent],
+                                colors: [CMColor.primary, CMColor.accent], // ИСПОЛЬЗУЕМ ВАШИ ЦВЕТА
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .shadow(color: CMColor.primary.opacity(0.4), radius: 8, x: 0, y: 4)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .shadow(color: CMColor.primary.opacity(0.4), radius: 8, x: 0, y: 4) // ИСПОЛЬЗУЕМ ВАШ ЦВЕТ
                     }
-                    .scaleEffect(showContent ? 1 : 0.8)
-                    .opacity(showContent ? 1 : 0)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.1), value: showContent)
                     
+                    // 2. Вторичная кнопка (Continue Swiping)
                     Button {
-                        let impact = UIImpactFeedbackGenerator(style: .light)
-                        impact.impactOccurred()
                         dismissPopup()
                     } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: "xmark.circle.fill")
+                            Image(systemName: "arrow.forward.square.fill") // Новая иконка
                                 .font(.system(size: 16, weight: .medium))
-                                
-                            // ИЗМЕНЕНИЕ: Четкое действие для закрытия
-                            Text("Continue Swiping")
-                                .font(.system(size: 17, weight: .medium))
+                            Text("Not Now, Continue Swiping") // Новый текст
+                                .font(.body)
+                                .fontWeight(.regular)
                         }
-                        .foregroundColor(CMColor.primaryText)
+                        .foregroundColor(CMColor.secondaryText) // ИСПОЛЬЗУЕМ ВАШ ЦВЕТ
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(CMColor.backgroundSecondary)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .frame(height: 52)
+                        .background(CMColor.backgroundSecondary.opacity(0.5)) // ИСПОЛЬЗУЕМ ВАШ ЦВЕТ (с меньшей непрозрачностью)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    .scaleEffect(showContent ? 1 : 0.8)
-                    .opacity(showContent ? 1 : 0)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.15), value: showContent)
                 }
+                .scaleEffect(showContent ? 1 : 0.9) // Легкая анимация контента
+                .opacity(showContent ? 1 : 0)
+                .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.1), value: showContent)
             }
-            .padding(24)
+            .padding(.top, 24)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 40) // Отступ от безопасной зоны
             .background(
+                // Фон карточки
                 RoundedRectangle(cornerRadius: 24)
-                    // Использую .regularMaterial для билда, если CMColor.regularMaterial не определен
+                    // Используем стандартный эффект для "regularMaterial", так как CMColor.regularMaterial не определен
                     .fill(.regularMaterial)
-                    .shadow(color: CMColor.black.opacity(0.1), radius: 20, x: 0, y: 10)
+                    .shadow(color: CMColor.black.opacity(0.15), radius: 10, x: 0, y: -5) // ИСПОЛЬЗУЕМ ВАШ ЦВЕТ
             )
-            .padding(.horizontal, 40)
-            .scaleEffect(showContent ? 1 : 0.7)
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .padding(.horizontal, 16)
+            // Анимация: Смещение снизу вверх (выглядит СИЛЬНО по-другому)
+            .offset(y: showContent ? 0 : 300)
             .opacity(showContent ? 1 : 0)
-            .animation(.spring(response: 0.5, dampingFraction: 0.8), value: showContent)
+            .animation(.spring(response: 0.6, dampingFraction: 0.9), value: showContent)
         }
         .onAppear {
             withAnimation(.easeOut(duration: 0.3)) {
-                backgroundOpacity = 0.4
+                backgroundOpacity = 1.0 // Устанавливаем полную видимость оверлея
             }
             
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.1)) {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.9).delay(0.1)) {
                 showContent = true
             }
         }
-    }
-    
-    private func dismissPopup() {
-        let impact = UIImpactFeedbackGenerator(style: .light)
-        impact.impactOccurred()
-        onContinueSwiping()
     }
 }
