@@ -18,7 +18,7 @@ struct ProBadgeView: View {
                     .font(.system(size: 16))
                     .foregroundColor(CMColor.primaryLight)
                 
-                Text("Pro")
+                Text("Premium")
                     .fontWeight(.semibold)
                     .foregroundColor(CMColor.primaryLight)
             }

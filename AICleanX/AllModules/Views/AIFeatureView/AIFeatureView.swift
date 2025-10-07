@@ -92,24 +92,23 @@ struct AIFeatureView: View {
                 
                 Spacer()
                 
-                // todo PRO
-//                Button(action: {
-//                    isPaywallPresented = true
-//                }) {
-//                    HStack(spacing: 8) {
-//                        Image(systemName: "star.fill")
-//                            .font(.system(size: 16))
-//                            .foregroundColor(CMColor.primaryLight)
-//                            
-//                        Text("Pro")
-//                            .fontWeight(.semibold)
-//                            .foregroundColor(CMColor.primaryLight)
-//                    }
-//                    .padding(.horizontal, 16)
-//                    .padding(.vertical, 10)
-//                    .background(CMColor.backgroundSecondary)
-//                    .clipShape(Capsule())
-//                }
+                Button(action: {
+                    isPaywallPresented = true
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(CMColor.primaryLight)
+                            
+                        Text("Premium")
+                            .fontWeight(.semibold)
+                            .foregroundColor(CMColor.primaryLight)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(CMColor.backgroundSecondary)
+                    .clipShape(Capsule())
+                }
             }
             
             // **Изменение: Описание Header**

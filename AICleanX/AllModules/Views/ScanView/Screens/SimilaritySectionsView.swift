@@ -7,6 +7,10 @@ struct SimilaritySectionsView: View {
     @State private var chosenSection: AICleanServiceSection?
     @State private var chosenImageIndex: Int = 0
     
+    // ВРЕМЕННОЕ РЕШЕНИЕ: В идеале isSelectionMode должен быть @Published в SimilaritySectionsViewModel
+    // Если ViewModel уже имеет isSelectionMode, удалите эту строку и замените viewState.isSelectionMode на isSelectionMode.
+    @State private var isLocalSelectionMode: Bool = false
+    
     private let galleryColumns: [GridItem] = [
         GridItem(.adaptive(minimum: 80), spacing: 8)
     ]
@@ -20,14 +24,24 @@ struct SimilaritySectionsView: View {
             // MARK: - Navigation Bar
             VStack(spacing: 0) {
                 HStack(spacing: 16) {
+                    // Кнопка Dismiss / Cancel
                     Button {
-                        viewDismiss()
+                        // Если в режиме выбора, то это Cancel
+                        if isLocalSelectionMode { // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode, если оно есть в ViewModel
+                            withAnimation(.easeInOut) {
+                                viewState.deselectAll()
+                                isLocalSelectionMode = false // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode, если оно есть в ViewModel
+                            }
+                        } else {
+                            // Иначе - закрываем View
+                            viewDismiss()
+                        }
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 28))
+                        let imageName = isLocalSelectionMode ? "xmark" : "xmark.circle.fill" // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+                        Image(systemName: imageName)
+                            .font(.system(size: isLocalSelectionMode ? 18 : 28, weight: isLocalSelectionMode ? .semibold : .regular)) // Уменьшаем размер иконки "Cancel"
                             .foregroundColor(CMColor.secondaryText)
-                            .opacity(viewState.hasSelectedItems ? 0 : 1)
-                            .animation(.easeInOut, value: viewState.hasSelectedItems)
+                            .animation(.easeInOut, value: isLocalSelectionMode) // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
                     }
 
                     Spacer()
@@ -38,17 +52,25 @@ struct SimilaritySectionsView: View {
                     
                     Spacer()
 
+                    // Кнопка Select / Done
                     Button {
-                        if viewState.hasSelectedItems {
-                            viewState.deselectAll()
+                        if isLocalSelectionMode { // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+                            // Если уже в режиме выбора и есть выделенные элементы, то это "Done" или просто неактивная кнопка.
+                            // Для простоты, оставим ее для входа в режим выбора / или выхода
+                            withAnimation(.easeInOut) {
+                                viewState.deselectAll()
+                                isLocalSelectionMode = false // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+                            }
                         } else {
-                            viewState.selectAll()
+                            // Вход в режим выбора
+                            withAnimation(.easeInOut) {
+                                isLocalSelectionMode = true // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+                            }
                         }
                     } label: {
-                        Image(systemName: viewState.hasSelectedItems ? "square.dashed.inset.fill" : "square.dashed")
-                            .font(.system(size: 28, weight: .regular))
+                        Text(isLocalSelectionMode ? "Cancel" : "Select") // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+                            .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(CMColor.primary)
-                            .animation(.spring(), value: viewState.hasSelectedItems)
                     }
                 }
                 .padding(.horizontal, 24)
@@ -122,6 +144,10 @@ struct SimilaritySectionsView: View {
             }
         }
     }
+    
+    // ---
+    // MARK: - Section View
+    // ---
 
     private func createSectionView(for section: AICleanServiceSection) -> some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -143,19 +169,22 @@ struct SimilaritySectionsView: View {
                 }
 
                 Spacer()
-
-                Button {
-                    withAnimation(.easeInOut) {
-                        if viewState.isAllSelectedInSection(section) {
-                            viewState.deselectAllInSection(section)
-                        } else {
-                            viewState.selectAllInSection(section)
+                
+                // Кнопка Select all / Deselect all внутри секции
+                if isLocalSelectionMode { // << Активируем кнопку только в режиме выбора
+                    Button {
+                        withAnimation(.easeInOut) {
+                            if viewState.isAllSelectedInSection(section) {
+                                viewState.deselectAllInSection(section)
+                            } else {
+                                viewState.selectAllInSection(section)
+                            }
                         }
+                    } label: {
+                        Text(viewState.isAllSelectedInSection(section) ? "Deselect all" : "Select all")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(viewState.isAllSelectedInSection(section) ? CMColor.error : CMColor.primary)
                     }
-                } label: {
-                    Text(viewState.isAllSelectedInSection(section) ? "Deselect all" : "Select all")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(viewState.isAllSelectedInSection(section) ? CMColor.error : CMColor.primary)
                 }
             }
             
@@ -185,6 +214,10 @@ struct SimilaritySectionsView: View {
         .shadow(color: .black.opacity(0.1), radius: 10, y: 5)
     }
 
+    // ---
+    // MARK: - Primary Item View
+    // ---
+    
     private func createPrimaryItemView(for model: AICleanServiceModel, section: AICleanServiceSection, index: Int) -> some View {
         let isSelected = viewState.isSelected(model)
         let cornerRadius: CGFloat = 16
@@ -199,11 +232,13 @@ struct SimilaritySectionsView: View {
                 )
             
             // "Best" icon
-            Image(systemName: "star.circle.fill")
-                .foregroundColor(CMColor.primary)
-                .font(.system(size: 24))
-                .shadow(radius: 2)
-                .padding(8)
+            if viewState.type == .duplicates || viewState.type == .similar {
+                Image(systemName: "star.circle.fill")
+                    .foregroundColor(CMColor.primary)
+                    .font(.system(size: 24))
+                    .shadow(radius: 2)
+                    .padding(8)
+            }
 
             if viewState.type == .videos {
                 VStack {
@@ -233,14 +268,16 @@ struct SimilaritySectionsView: View {
                     .padding(8)
             }
             .frame(width: itemSize, height: itemSize, alignment: .topTrailing)
-            .opacity(isSelected || viewState.isSelectionMode ? 1.0 : 0.0)
+            // ИЗМЕНЕНИЕ: Теперь показываем чекбокс только если isSelected ИЛИ в режиме выбора
+            .opacity(isSelected || isLocalSelectionMode ? 1.0 : 0.0) // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
             .animation(.easeInOut(duration: 0.2), value: isSelected)
-            .animation(.easeInOut(duration: 0.2), value: viewState.isSelectionMode)
+            .animation(.easeInOut(duration: 0.2), value: isLocalSelectionMode) // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
         }
         .frame(width: itemSize, height: itemSize)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius))
         .onTapGesture {
-            if viewState.isSelectionMode {
+            // ИЗМЕНЕНИЕ: Одиночный тап в режиме выбора включает/выключает выделение
+            if isLocalSelectionMode { // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
                 viewState.toggleSelection(for: model)
             } else {
                 chosenImageIndex = index
@@ -248,12 +285,17 @@ struct SimilaritySectionsView: View {
             }
         }
         .onLongPressGesture {
+            // ИЗМЕНЕНИЕ: Долгое нажатие активирует режим выбора И выделяет элемент
             withAnimation(.easeInOut(duration: 0.2)) {
-                viewState.isSelectionMode = true
+                isLocalSelectionMode = true // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
                 viewState.toggleSelection(for: model)
             }
         }
     }
+
+    // ---
+    // MARK: - Gallery Item View
+    // ---
 
     private func createGalleryItemView(for model: AICleanServiceModel, section: AICleanServiceSection, index: Int) -> some View {
         let isSelected = viewState.isSelected(model)
@@ -296,15 +338,17 @@ struct SimilaritySectionsView: View {
                     .padding(4)
             }
             .frame(width: itemSize, height: itemSize, alignment: .topTrailing)
-            .opacity(isSelected || viewState.isSelectionMode ? 1.0 : 0.0)
+            // ИЗМЕНЕНИЕ: Теперь показываем чекбокс только если isSelected ИЛИ в режиме выбора
+            .opacity(isSelected || isLocalSelectionMode ? 1.0 : 0.0) // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
             .animation(.easeInOut(duration: 0.2), value: isSelected)
-            .animation(.easeInOut(duration: 0.2), value: viewState.isSelectionMode)
+            .animation(.easeInOut(duration: 0.2), value: isLocalSelectionMode) // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
         }
         .frame(width: itemSize, height: itemSize)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius))
         .clipped()
         .onTapGesture {
-            if viewState.isSelectionMode {
+            // ИЗМЕНЕНИЕ: Одиночный тап в режиме выбора включает/выключает выделение
+            if isLocalSelectionMode { // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
                 viewState.toggleSelection(for: model)
             } else {
                 chosenImageIndex = index
@@ -312,15 +356,16 @@ struct SimilaritySectionsView: View {
             }
         }
         .onLongPressGesture {
+            // ИЗМЕНЕНИЕ: Долгое нажатие активирует режим выбора И выделяет элемент
             withAnimation(.easeInOut(duration: 0.2)) {
-                viewState.isSelectionMode = true
+                isLocalSelectionMode = true // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
                 viewState.toggleSelection(for: model)
             }
         }
     }
 }
 
-// MARK: - Checkbox View
+// MARK: - Checkbox View (Остается без изменений)
 struct CheckboxView: View {
     let isSelected: Bool
     

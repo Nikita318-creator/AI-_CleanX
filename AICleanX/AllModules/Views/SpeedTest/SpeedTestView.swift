@@ -64,8 +64,7 @@ struct SpeedTestView: View {
             
             Spacer()
             
-            // todo PRO
-//            ProBadgeView(isPaywallPresented: $isPaywallPresented)
+            ProBadgeView(isPaywallPresented: $isPaywallPresented)
         }
         .padding(.top, 20 * scalingFactor)
     }
