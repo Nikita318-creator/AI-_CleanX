@@ -8,8 +8,7 @@ import Combine
 // todo PRO
 enum PurchaseServiceProduct: String, CaseIterable {
     case week = "1"
-    case month3 = "2"
-    case year = "3"
+    case month = "2"
 }
 
 /// Defines the outcome of a purchase or restore operation.
@@ -80,7 +79,7 @@ final class ApphudPurchaseService {
 
     /// Purchases a subscription plan.
     @MainActor
-    func purchase(plan: SubscriptionPlan, completion: @escaping PurchaseCompletion) {
+    func purchase(plan: PurchaseServiceProduct, completion: @escaping PurchaseCompletion) {
         guard let productId = getProductId(for: plan) else {
             completion(.failure(PurchaseError.noProductsFound))
             return
@@ -138,10 +137,8 @@ final class ApphudPurchaseService {
         switch product {
         case .week:
             days = 7.0
-        case .month3:
-            days = 90.0 // Assuming 90 days for 3 months
-        case .year:
-            days = 365.0
+        case .month:
+            days = 30.0 // Assuming 30 days for month
         }
         
         let perDay = priceValue / days
@@ -152,20 +149,18 @@ final class ApphudPurchaseService {
 
     // MARK: - Private Methods
 
-    private func getProductId(for plan: SubscriptionPlan) -> String? {
+    private func getProductId(for plan: PurchaseServiceProduct) -> String? {
         // This function now needs to be adapted to the new `PurchaseServiceProduct` enum.
         // The `SubscriptionPlan` enum is no longer sufficient to map all products.
         // You will need to update the call site to pass in `PurchaseServiceProduct` directly.
         // Assuming there is a way to map old plans to new products:
         switch plan {
-        case .weekly:
+        case .week:
             return PurchaseServiceProduct.week.rawValue
-        case .monthly3:
+        case .month:
             // This mapping is now ambiguous. Please update the `SubscriptionPlan` or the calling code.
             // For now, let's assume it's for 3-month plan.
-            return PurchaseServiceProduct.month3.rawValue
-        case .yearly:
-            return PurchaseServiceProduct.year.rawValue
+            return PurchaseServiceProduct.month.rawValue
         }
     }
 

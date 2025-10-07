@@ -33,7 +33,7 @@ final class PaywallViewModel: ObservableObject {
     
     /// Handles the purchase button tap action.
     @MainActor
-    func continueTapped(with plan: SubscriptionPlan) {
+    func continueTapped(with plan: PurchaseServiceProduct) {
         purchaseService.purchase(plan: plan) { [weak self] result in
             guard let self = self else { return }
             
@@ -85,12 +85,10 @@ final class PaywallViewModel: ObservableObject {
         
         await MainActor.run {
             self.weekPrice = purchaseService.localizedPrice(for: .week) ?? "N/A"
-            self.month3Price = purchaseService.localizedPrice(for: .month3) ?? "N/A" // NEW
-            self.yearPrice = purchaseService.localizedPrice(for: .year) ?? "N/A" // NEW
+            self.month3Price = purchaseService.localizedPrice(for: .month) ?? "N/A" // NEW
             
             self.weekPricePerDay = purchaseService.perDayPrice(for: .week)
-            self.month3PricePerDay = purchaseService.perDayPrice(for: .month3) // NEW
-            self.yearPricePerDay = purchaseService.perDayPrice(for: .year) // NEW
+            self.month3PricePerDay = purchaseService.perDayPrice(for: .month) // NEW
         }
     }
     

@@ -31,6 +31,7 @@ struct MainView: View {
     
     @State private var presentedView: CategoryViewType?
     @State private var showSwipeModeView = false
+    @State private var showPromotionAnimation: Bool = false
 
     init(isPaywallPresented: Binding<Bool>) {
         self._isPaywallPresented = isPaywallPresented
@@ -54,6 +55,7 @@ struct MainView: View {
             
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
+                    
                     // Compact Header
                     HStack(alignment: .center) {
                         VStack(alignment: .leading, spacing: 4) {
@@ -63,8 +65,7 @@ struct MainView: View {
                             
                             if viewModel.progress < 1 {
                                 HStack(spacing: 6) {
-                                    ProgressView()
-                                        .scaleEffect(0.8)
+                                    ProgressView().scaleEffect(0.8)
                                     Text("Scanning \(Int(viewModel.progress * 100))%")
                                         .font(.system(size: 15, weight: .medium))
                                         .foregroundColor(CMColor.secondaryText)
@@ -78,51 +79,62 @@ struct MainView: View {
                         
                         Spacer()
                         
-                        Button(action: { showSwipeModeView = true }) {
-                            ZStack {
-                                Circle()
-                                    .fill(CMColor.surface)
-                                    .frame(width: 44, height: 44)
-                                    .shadow(color: CMColor.black.opacity(0.08), radius: 4, x: 0, y: 2)
-                                
-                                Image(systemName: "star.square.fill")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(CMColor.iconSecondary)
+                        // --- БЛОК С КНОПКОЙ И ТЕКСТОМ ПОДСВЕТКИ ---
+                        HStack(spacing: 8) {
+                            
+                            // Текст "AI-smart-clean"
+                            if showPromotionAnimation {
+                                Text("AI-smart-clean")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(CMColor.primary)
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 10)
+                                    .background(
+                                        Capsule()
+                                            .fill(CMColor.primary.opacity(0.1))
+                                    )
+                                    .transition(.opacity.combined(with: .slide))
+                            }
+                            
+                            // Кнопка
+                            Button(action: {
+                                // 1. Сбрасываем анимацию перед открытием оверлея
+                                showPromotionAnimation = false
+                                // 2. Открываем оверлей
+                                showSwipeModeView = true
+                            }) {
+                                ZStack {
+                                    Circle()
+                                        .fill(CMColor.surface)
+                                        .frame(width: 44, height: 44)
+                                        .shadow(color: CMColor.black.opacity(0.08), radius: 4, x: 0, y: 2)
+                                    
+                                    // АНИМИРОВАННЫЙ БОРДЕР (Пульсация)
+                                    Circle()
+                                        .stroke(CMColor.primary, lineWidth: 2)
+                                        .frame(width: 50, height: 50)
+                                        .opacity(showPromotionAnimation ? 1 : 0)
+                                        .scaleEffect(showPromotionAnimation ? 1.2 : 1.0)
+                                    // ВАЖНО: Анимация не повторяется бесконечно (нет .repeatForever)
+                                        .animation(
+                                            .easeInOut(duration: 1.5),
+                                            value: showPromotionAnimation
+                                        )
+                                    
+                                    Image(systemName: "star.square.fill")
+                                        .font(.system(size: 18))
+                                        .foregroundColor(CMColor.iconSecondary)
+                                }
                             }
                         }
+                        // --- КОНЕЦ БЛОКА С КНОПКОЙ И ТЕКСТОМ ПОДСВЕТКИ ---
                     }
-                    .padding(.top, 12)
-                    .padding(.horizontal, 20)
+                    .padding(.top, 12).padding(.horizontal, 20)
                     
                     // Media Section
-                    CategoryGroupView(
-                        title: "Photos",
-                        icon: "photo.stack",
-                        categories: photoCategories,
-                        viewModel: viewModel,
-                        handleTap: handleTap,
-                        generateEmptyStateImage: generateEmptyStateImage
-                    )
-                    
-                    // Videos Section
-                    CategoryGroupView(
-                        title: "Videos",
-                        icon: "video.circle",
-                        categories: videoCategory,
-                        viewModel: viewModel,
-                        handleTap: handleTap,
-                        generateEmptyStateImage: generateEmptyStateImage
-                    )
-                    
-                    // System Section
-                    CategoryGroupView(
-                        title: "System",
-                        icon: "slider.horizontal.3",
-                        categories: utilityCategories,
-                        viewModel: viewModel,
-                        handleTap: handleTap,
-                        generateEmptyStateImage: generateEmptyStateImage
-                    )
+                    CategoryGroupView(title: "Photos", icon: "photo.stack", categories: photoCategories, viewModel: viewModel, handleTap: handleTap, generateEmptyStateImage: generateEmptyStateImage)
+                    CategoryGroupView(title: "Videos", icon: "video.circle", categories: videoCategory, viewModel: viewModel, handleTap: handleTap, generateEmptyStateImage: generateEmptyStateImage)
+                    CategoryGroupView(title: "System", icon: "slider.horizontal.3", categories: utilityCategories, viewModel: viewModel, handleTap: handleTap, generateEmptyStateImage: generateEmptyStateImage)
                 }
                 .padding(.bottom, 100)
             }
@@ -130,7 +142,11 @@ struct MainView: View {
                 viewModel.onAppear()
                 viewModel.scanContacts()
                 viewModel.scanCalendar()
+                
+                // Запуск при появлении экрана (при запуске приложения)
+                startPromotion()
             }
+            // ... (fullScreenCover блоки) ...
             .fullScreenCover(item: $presentedView) { viewType in
                 switch viewType {
                 case .contacts:
@@ -138,44 +154,40 @@ struct MainView: View {
                 case .calendar:
                     AICalendarView()
                 case .similarPhotos:
-                    SimilaritySectionsView(
-                        viewModel: SimilaritySectionsViewModel(
-                            sections: viewModel.getSections(for: .image(.similar)),
-                            type: .similar
-                        )
-                    )
+                    SimilaritySectionsView(viewModel: SimilaritySectionsViewModel(sections: viewModel.getSections(for: .image(.similar)), type: .similar))
                 case .duplicates:
-                    SimilaritySectionsView(
-                        viewModel: SimilaritySectionsViewModel(
-                            sections: viewModel.getSections(for: .image(.duplicates)),
-                            type: .duplicates
-                        )
-                    )
+                    SimilaritySectionsView(viewModel: SimilaritySectionsViewModel(sections: viewModel.getSections(for: .image(.duplicates)), type: .duplicates))
                 case .blurryPhotos:
-                    SimilaritySectionsView(
-                        viewModel: SimilaritySectionsViewModel(
-                            sections: viewModel.getSections(for: .image(.blurred)),
-                            type: .blurred
-                        )
-                    )
+                    SimilaritySectionsView(viewModel: SimilaritySectionsViewModel(sections: viewModel.getSections(for: .image(.blurred)), type: .blurred))
                 case .screenshots:
-                    SimilaritySectionsView(
-                        viewModel: SimilaritySectionsViewModel(
-                            sections: viewModel.getSections(for: .image(.screenshots)),
-                            type: .screenshots
-                        )
-                    )
+                    SimilaritySectionsView(viewModel: SimilaritySectionsViewModel(sections: viewModel.getSections(for: .image(.screenshots)), type: .screenshots))
                 case .videos:
-                    SimilaritySectionsView(
-                        viewModel: SimilaritySectionsViewModel(
-                            sections: viewModel.getSections(for: .video),
-                            type: .videos
-                        )
-                    )
+                    SimilaritySectionsView(viewModel: SimilaritySectionsViewModel(sections: viewModel.getSections(for: .video), type: .videos))
                 }
             }
+            // ВАЖНОЕ ИСПРАВЛЕНИЕ БАГА: onDisappear для повторного запуска
             .fullScreenCover(isPresented: $showSwipeModeView) {
                 AIFeatureView(isPaywallPresented: $isPaywallPresented)
+                // При закрытии оверлея, принудительно запускаем анимацию снова.
+                    .onDisappear {
+                        startPromotion()
+                    }
+            }
+        }
+    }
+    
+    private func startPromotion() {
+        // Запускаем только если она не активна, чтобы избежать конфликтов таймеров
+        guard !showPromotionAnimation else { return }
+        
+        withAnimation {
+            showPromotionAnimation = true
+        }
+        
+        // Скрываем текст через 5 секунд, останавливая и пульсацию
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            withAnimation(.easeInOut(duration: 0.5)) {
+                showPromotionAnimation = false
             }
         }
     }

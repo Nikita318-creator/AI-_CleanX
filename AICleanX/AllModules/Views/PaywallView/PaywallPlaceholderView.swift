@@ -1,11 +1,5 @@
 import SwiftUI
 
-enum SubscriptionPlan {
-    case weekly
-    case monthly3
-    case yearly
-}
-
 struct PaywallView: View {
     @Binding var isPresented: Bool
     @StateObject private var viewModel: PaywallViewModel
@@ -57,7 +51,7 @@ struct PaywallView: View {
                 Spacer()
                 
                 PaywallContinueButton(action: {
-                    viewModel.continueTapped(with: .weekly)
+                    viewModel.continueTapped(with: .week)
                 })
                 .padding(.horizontal, 20)
                 
