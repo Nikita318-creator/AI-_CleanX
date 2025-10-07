@@ -39,12 +39,12 @@ final class OnboardingViewModel: ObservableObject {
     ]
     
     func licenseAgreementTapped() {
-        guard let url = URL(string: ResurcesUrlsConstants.licenseAgreementURL) else { return }
+        guard let url = URL(string: UrlsConstants.terms) else { return }
         UIApplication.shared.open(url)
     }
     
     func privacyPolicyTapped() {
-        guard let url = URL(string: ResurcesUrlsConstants.privacyPolicyURL) else { return }
+        guard let url = URL(string: UrlsConstants.privacy) else { return }
         UIApplication.shared.open(url)
     }
  

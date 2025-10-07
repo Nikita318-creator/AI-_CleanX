@@ -1,6 +1,12 @@
 import SwiftUI
 import Combine
 
+// todo test111
+enum UrlsConstants {
+    static let privacy = ""
+    static let terms = ""
+}
+
 // MARK: - PaywallViewModel: Handles the business logic for the paywall view
 final class PaywallViewModel: ObservableObject {
     
@@ -65,13 +71,13 @@ final class PaywallViewModel: ObservableObject {
     
     /// Opens the license agreement URL.
     func licenseAgreementTapped() {
-        guard let url = URL(string: ResurcesUrlsConstants.licenseAgreementURL) else { return }
+        guard let url = URL(string: UrlsConstants.terms) else { return }
         UIApplication.shared.open(url)
     }
     
     /// Opens the privacy policy URL.
     func privacyPolicyTapped() {
-        guard let url = URL(string: ResurcesUrlsConstants.privacyPolicyURL) else { return }
+        guard let url = URL(string: UrlsConstants.privacy) else { return }
         UIApplication.shared.open(url)
     }
     
