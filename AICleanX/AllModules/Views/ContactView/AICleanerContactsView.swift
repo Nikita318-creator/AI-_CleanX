@@ -12,6 +12,7 @@ struct AICleanerContactsView: View {
     
     var body: some View {
         GeometryReader { geometry in
+            // Определяем коэффициент масштабирования
             let scalingFactor = geometry.size.height / 844
             
             ZStack {
@@ -29,7 +30,13 @@ struct AICleanerContactsView: View {
                         loadingView(scalingFactor: scalingFactor)
                     } else {
                         ScrollView {
-                            VStack(spacing: 16 * scalingFactor) {
+                            // --- Сетка для квадратных ячеек (2 в ряд) ---
+                            let columns = [
+                                GridItem(.flexible(), spacing: 16 * scalingFactor),
+                                GridItem(.flexible())
+                            ]
+                            
+                            LazyVGrid(columns: columns, spacing: 16 * scalingFactor) {
                                 ForEach(ContactCategory.allCases, id: \.self) { category in
                                     contactCategoryButton(
                                         category: category,
@@ -37,6 +44,7 @@ struct AICleanerContactsView: View {
                                     )
                                 }
                             }
+                            // ---------------------------------------------
                             .padding(.horizontal, 16 * scalingFactor)
                             .padding(.top, 24 * scalingFactor)
                             .padding(.bottom, 32 * scalingFactor)
@@ -141,7 +149,7 @@ struct AICleanerContactsView: View {
         .padding(.vertical, 16 * scalingFactor)
     }
     
-    // MARK: - Contact Category Button
+    // MARK: - Contact Category Button (Квадратная ячейка)
     private func contactCategoryButton(category: ContactCategory, scalingFactor: CGFloat) -> some View {
         Button(action: {
             switch category {
@@ -153,50 +161,46 @@ struct AICleanerContactsView: View {
                 showIncomplete = true
             }
         }) {
-            VStack(alignment: .leading, spacing: 12 * scalingFactor) {
-                HStack(alignment: .top, spacing: 16 * scalingFactor) {
-                    VStack(alignment: .leading, spacing: 8 * scalingFactor) {
-                        HStack {
-                            Image(systemName: category.systemImage)
-                                .font(.system(size: 24 * scalingFactor))
-                                .foregroundColor(CMColor.primary)
-                            
-                            Text(category.rawValue)
-                                .font(.system(size: 18 * scalingFactor, weight: .semibold))
-                                .foregroundColor(CMColor.primaryText)
-                        }
-                        
-                        Text(getSubtitleForCategory(category))
-                            .font(.system(size: 14 * scalingFactor, weight: .medium))
-                            .foregroundColor(CMColor.secondaryText)
-                    }
+            // Используем GeometryReader для определения ширины ячейки
+            GeometryReader { buttonGeometry in
+                VStack(alignment: .leading, spacing: 0) {
+                    
+                    // Иконка
+                    Image(systemName: category.systemImage)
+                        .font(.system(size: 36 * scalingFactor))
+                        .foregroundColor(CMColor.primary)
+                        .padding(.bottom, 8 * scalingFactor)
                     
                     Spacer()
                     
-                    HStack(spacing: 8 * scalingFactor) {
-                        Text(getCountForCategory(category))
-                            .font(.system(size: 16 * scalingFactor, weight: .semibold))
-                            .foregroundColor(CMColor.primaryText)
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14 * scalingFactor, weight: .semibold))
-                            .foregroundColor(CMColor.secondaryText)
-                    }
+                    // Счетчик (крупный)
+                    Text(getCountForCategory(category))
+                        .font(.system(size: 28 * scalingFactor, weight: .bold))
+                        .foregroundColor(CMColor.primaryText)
+                        .lineLimit(1)
+                    
+                    // Заголовок
+                    Text(category.rawValue)
+                        .font(.system(size: 14 * scalingFactor, weight: .semibold))
+                        .foregroundColor(CMColor.secondaryText)
+                        .lineLimit(1)
                 }
-                .padding(.horizontal, 16 * scalingFactor)
-                .padding(.vertical, 12 * scalingFactor)
+                .padding(16 * scalingFactor)
+                // --- ГЛАВНЫЙ ЭЛЕМЕНТ: Делаем высоту равной ширине ---
+                .frame(width: buttonGeometry.size.width, height: buttonGeometry.size.width)
+                // ---------------------------------------------------
                 .background(
-                    RoundedRectangle(cornerRadius: 12 * scalingFactor)
+                    RoundedRectangle(cornerRadius: 16 * scalingFactor)
                         .fill(CMColor.surface)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12 * scalingFactor)
-                                .stroke(CMColor.border, lineWidth: 1)
-                        )
+                        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 3)
                 )
             }
+            // Этот модификатор помогает ячейке вести себя как квадратный элемент в LazyVGrid
+            .aspectRatio(1, contentMode: .fit)
         }
     }
     
+    // MARK: - Subtitles and Counts
     private func getSubtitleForCategory(_ category: ContactCategory) -> String {
         switch category {
         case .allContacts:
@@ -228,6 +232,7 @@ struct AICleanerContactsView: View {
         return !hasName || !hasPhone
     }
     
+    // MARK: - Auxiliary Views
     private func permissionRequestView(scalingFactor: CGFloat) -> some View {
         VStack(spacing: 24 * scalingFactor) {
             Spacer()

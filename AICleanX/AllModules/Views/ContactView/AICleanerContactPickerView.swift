@@ -175,19 +175,19 @@ class ContactsPermissionManager: ObservableObject {
     var permissionStatusMessage: String {
         switch authorizationStatus {
         case .notDetermined:
-            return "Доступ к контактам не настроен"
+            return "Contact access not yet determined"
         case .denied:
-            return hasRequestedPermissionBefore ? 
-                "Доступ к контактам запрещен. Перейдите в Настройки для изменения разрешений." :
-                "Доступ к контактам запрещен"
+            return hasRequestedPermissionBefore ?
+                "Contact access denied. Please go to Settings to change permissions." :
+                "Contact access denied"
         case .restricted:
-            return "Доступ к контактам ограничен"
+            return "Contact access is restricted"
         case .authorized:
-            return "Доступ к контактам разрешен"
+            return "Contact access authorized"
         case .limited:
-            return "Доступ к контактам ограничен"
+            return "Contact access is limited"
         @unknown default:
-            return "Неизвестный статус доступа к контактам"
+            return "Unknown contact access status"
         }
     }
 }

@@ -23,82 +23,76 @@ struct AICleanerDuplicateContactsView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Completely new Header
+                    
+                    // --- Header: Classic Back Button and Title ---
                     VStack(spacing: 12 * scalingFactor) {
                         HStack {
+                            // CLASSIC BACK BUTTON (Chevron)
                             Button(action: {
                                 dismiss()
                             }) {
-                                HStack(spacing: 8 * scalingFactor) {
-                                    Image(systemName: "arrow.backward.circle.fill")
-                                        .font(.system(size: 20 * scalingFactor, weight: .bold))
-                                        .foregroundColor(CMColor.primary)
-                                    
-                                    Text("Go Back")
-                                        .font(.system(size: 18 * scalingFactor, weight: .semibold))
-                                        .foregroundColor(CMColor.primary)
-                                }
+                                Image(systemName: "chevron.left") // Classic iOS back arrow
+                                    .font(.system(size: 24 * scalingFactor, weight: .semibold))
+                                    .foregroundColor(CMColor.primary)
+                                    .padding(.leading, 8 * scalingFactor)
                             }
                             
                             Spacer()
                             
+                            // Screen Title (Updated text)
+                            Text("Identity Cleanup")
+                                .font(.system(size: 24 * scalingFactor, weight: .heavy))
+                                .foregroundColor(CMColor.primaryText)
+                            
+                            Spacer()
+                            
+                            // Refresh Button
                             Button(action: {
                                 Task {
                                     await viewModel.loadSystemContacts()
                                 }
                             }) {
-                                HStack(spacing: 8 * scalingFactor) {
-                                    Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
-                                        .font(.system(size: 20 * scalingFactor, weight: .bold))
-                                        .foregroundColor(CMColor.primary)
-                                    
-                                    Text("Refresh")
-                                        .font(.system(size: 18 * scalingFactor, weight: .semibold))
-                                        .foregroundColor(CMColor.primary)
-                                }
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 20 * scalingFactor, weight: .semibold))
+                                    .foregroundColor(CMColor.primary)
+                                    .padding(.trailing, 8 * scalingFactor)
                             }
+                            .disabled(viewModel.isLoading || isPerformingMerge)
                         }
-                        .padding(.horizontal, 20 * scalingFactor)
                         .padding(.top, 16 * scalingFactor)
-                        
-                        Text("Duplicate Contacts Found")
-                            .font(.system(size: 28 * scalingFactor, weight: .heavy))
-                            .foregroundColor(CMColor.primaryText)
-                        
+                        .padding(.horizontal, 8 * scalingFactor)
+
+                        // Subtitle/Info (Updated text)
                         if !viewModel.duplicateGroups.isEmpty {
                             let totalDuplicates = viewModel.duplicateGroups.flatMap { $0 }.count
-                            Text("You have \(viewModel.duplicateGroups.count) groups with \(totalDuplicates) duplicate contacts.")
-                                .font(.system(size: 14 * scalingFactor, weight: .medium))
+                            Text("We've detected \(viewModel.duplicateGroups.count) groups with \(totalDuplicates) similar contacts that can be combined.")
+                                .font(.system(size: 15 * scalingFactor, weight: .medium))
                                 .foregroundColor(CMColor.primaryText.opacity(0.8))
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 24 * scalingFactor)
                         }
                     }
                     .padding(.bottom, 24 * scalingFactor)
+                    // ---------------------------------------------
                     
                     if viewModel.duplicateGroups.isEmpty {
-                        VStack(spacing: 16 * scalingFactor) {
-                            Spacer()
-                            Image(systemName: "hand.thumbsup.fill")
-                                .font(.system(size: 60 * scalingFactor, weight: .bold))
-                                .foregroundColor(CMColor.success)
-                            Text("No Duplicates Found")
-                                .font(.system(size: 24 * scalingFactor, weight: .bold))
-                                .foregroundColor(CMColor.primaryText)
-                            Text("Your contacts are clean! Great job!")
-                                .font(.system(size: 16 * scalingFactor, weight: .regular))
-                                .foregroundColor(CMColor.secondaryText)
-                            Spacer()
-                        }
-                        .padding(.horizontal, 20 * scalingFactor)
+                        noDuplicatesFoundView(scalingFactor: scalingFactor)
                     } else {
                         ScrollView {
-                            VStack(spacing: 32 * scalingFactor) {
+                            // --- LazyVGrid for Square Cells (2 per row) ---
+                            let columns = [
+                                GridItem(.flexible(), spacing: 16 * scalingFactor),
+                                GridItem(.flexible())
+                            ]
+                            
+                            LazyVGrid(columns: columns, spacing: 16 * scalingFactor) {
                                 ForEach(Array(viewModel.duplicateGroups.enumerated()), id: \.offset) { index, group in
-                                    // Используем новый, исправленный дублированный раздел
-                                    duplicateGroupSection(group: group, groupIndex: index, scalingFactor: scalingFactor, isFirstGroup: index == 0)
+                                    // Используем новую квадратную карточку
+                                    squareDuplicateCard(group: group, groupIndex: index, scalingFactor: scalingFactor)
                                 }
                             }
+                            // ---------------------------------------------
+                            .padding(.horizontal, 16 * scalingFactor)
                             .padding(.vertical, 24 * scalingFactor)
                         }
                     }
@@ -107,30 +101,29 @@ struct AICleanerDuplicateContactsView: View {
             }
         }
         .navigationBarHidden(true)
-        .alert("Merge Confirmation", isPresented: $showMergeAlert) {
-            Button("Yes, Merge", role: .destructive) {
-                // Исправлено: теперь вызываем mergeSelectedContactsInGroup
+        .alert("Confirm Consolidation", isPresented: $showMergeAlert) { // Updated text
+            Button("Merge Now", role: .destructive) { // Updated text
                 if let group = selectedGroup {
                     mergeSelectedContactsInGroup(group)
                 }
             }
-            Button("No, Cancel", role: .cancel) {
-                // Опционально: можно очистить selectedDuplicates при отмене, если нужно
+            Button("Keep Separate", role: .cancel) { // Updated text
                 selectedDuplicates.removeAll()
             }
         } message: {
-            Text("Are you sure you want to merge these duplicate contacts? This action is permanent.")
+            Text("Are you certain you want to consolidate these duplicate entries? This action cannot be reversed.") // Updated text
         }
-        .alert("Merge Complete", isPresented: $showMergeSuccess) {
-            Button("Done") {
+        .alert("Process Complete", isPresented: $showMergeSuccess) { // Updated text
+            Button("OK") { // Updated text
                 mergeSuccessMessage = nil
             }
         } message: {
-            Text(mergeSuccessMessage ?? "Contacts successfully merged!")
+            Text(mergeSuccessMessage ?? "Contacts successfully unified!") // Updated text
         }
     }
     
-    // MARK: - Helper Methods
+    // MARK: - Core Logic
+    
     private func toggleSelection(for id: String) {
         if selectedDuplicates.contains(id) {
             selectedDuplicates.remove(id)
@@ -143,12 +136,13 @@ struct AICleanerDuplicateContactsView: View {
         guard let group = group else { return }
         
         let groupIds = group.map { $0.identifier }
-        let areAllSelected = groupIds.allSatisfy { selectedDuplicates.contains($0) }
+        let selectedInGroup = groupIds.filter { selectedDuplicates.contains($0) }.count
         
-        if areAllSelected {
-            groupIds.forEach { selectedDuplicates.remove($0) }
-        } else {
+        // Select all if not all are selected, otherwise deselect all
+        if selectedInGroup < group.count {
             groupIds.forEach { selectedDuplicates.insert($0) }
+        } else {
+            groupIds.forEach { selectedDuplicates.remove($0) }
         }
     }
     
@@ -157,7 +151,7 @@ struct AICleanerDuplicateContactsView: View {
         let selectedIds = Set(selectedInGroup.map { $0.identifier })
         
         guard selectedInGroup.count >= 2 else {
-            viewModel.errorMessage = "Please select at least 2 contacts to merge"
+            viewModel.errorMessage = "Please choose at least 2 contacts for consolidation." // Updated text
             return
         }
         
@@ -172,8 +166,8 @@ struct AICleanerDuplicateContactsView: View {
                 if success {
                     selectedIds.forEach { selectedDuplicates.remove($0) }
                     
-                    // Show success message
-                    mergeSuccessMessage = "Successfully merged \(selectedInGroup.count) contacts"
+                    // Show success message (Updated text)
+                    mergeSuccessMessage = "The selected \(selectedInGroup.count) contacts were merged into one master entry."
                     showMergeSuccess = true
                     
                     Task {
@@ -183,253 +177,98 @@ struct AICleanerDuplicateContactsView: View {
             }
         }
     }
+
+    // MARK: - Square Contact Card
     
-    private func duplicateGroupSection(group: [CNContact], groupIndex: Int, scalingFactor: CGFloat, isFirstGroup: Bool) -> some View {
-        let firstContact = group.first!
-        let selectedInGroup = group.filter { selectedDuplicates.contains($0.identifier) }.count
+    private func squareDuplicateCard(group: [CNContact], groupIndex: Int, scalingFactor: CGFloat) -> some View {
+        let primaryContact = group.first! // Use the first as the representative
+        let selectedCount = group.filter { selectedDuplicates.contains($0.identifier) }.count
+        let allSelected = selectedCount == group.count
         
-        return VStack(spacing: 16 * scalingFactor) {
-            VStack(spacing: 12 * scalingFactor) {
-                HStack {
-                    ZStack {
-                        Circle()
-                            .fill(isFirstGroup ? CMColor.primary : CMColor.secondary)
-                            .frame(width: 40 * scalingFactor, height: 40 * scalingFactor)
-                        
-                        Text(String(firstContact.givenName.prefix(1).uppercased()))
-                            .font(.system(size: 18 * scalingFactor, weight: .semibold))
-                            .foregroundColor(.white)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 2 * scalingFactor) {
-                        HStack {
-                            Text(isFirstGroup ? "Duplicates" : "Group \(groupIndex + 1)")
-                                .font(.system(size: 17 * scalingFactor, weight: .semibold))
-                                .foregroundColor(CMColor.primaryText)
-                            
-                            Text("\(group.count)")
-                                .font(.system(size: 12 * scalingFactor, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6 * scalingFactor)
-                                .padding(.vertical, 2 * scalingFactor)
-                                .background(CMColor.error)
-                                .cornerRadius(8 * scalingFactor)
-                        }
-                        
-                        let fullName = "\(firstContact.givenName) \(firstContact.familyName)"
-                        Text(fullName.count > 25 ? String(fullName.prefix(22)) + "..." : fullName)
-                            .font(.system(size: 15 * scalingFactor, weight: .regular))
-                            .foregroundColor(CMColor.secondaryText)
-                        
-                        if let phoneNumber = firstContact.phoneNumbers.first?.value.stringValue {
-                            Text(phoneNumber)
-                                .font(.system(size: 15 * scalingFactor, weight: .regular))
-                                .foregroundColor(CMColor.secondaryText)
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    if selectedInGroup > 0 {
-                        VStack {
-                            Text("\(selectedInGroup)/\(group.count)")
-                                .font(.system(size: 12 * scalingFactor, weight: .semibold))
-                                .foregroundColor(CMColor.primary)
-                            
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 16 * scalingFactor))
-                                .foregroundColor(CMColor.primary)
-                        }
-                    } else {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14 * scalingFactor, weight: .medium))
-                            .foregroundColor(CMColor.secondaryText)
-                    }
-                }
-                .padding(.horizontal, 16 * scalingFactor)
-                .padding(.vertical, 12 * scalingFactor)
-                .background(
-                    RoundedRectangle(cornerRadius: 12 * scalingFactor)
-                        .fill(CMColor.surface)
-                        .shadow(color: .black.opacity(0.05), radius: 2 * scalingFactor, x: 0, y: 1 * scalingFactor)
-                )
-                .onTapGesture {
-                    // При нажатии на заголовок группы, переключаем выбор всех контактов
-                    toggleSelectAll(for: group)
-                }
-                
-                // Заголовок "Select contacts to merge" и кнопка "Select all"
-                HStack {
-                    Text("Select contacts to merge")
-                        .font(.system(size: 15 * scalingFactor, weight: .regular))
-                        .foregroundColor(CMColor.secondaryText)
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        toggleSelectAll(for: group)
-                    }) {
-                        Text(selectedInGroup == group.count ? "Deselect all" : "Select all")
-                            .font(.system(size: 15 * scalingFactor, weight: .medium))
-                            .foregroundColor(CMColor.primary)
-                    }
-                }
-                .padding(.horizontal, 16 * scalingFactor)
-                
-                // Список дубликатов
-                VStack(spacing: 8 * scalingFactor) {
-                    ForEach(Array(group.enumerated()), id: \.element.identifier) { index, contact in
-                        enhancedDuplicateContactCard(
-                            contact: contact,
-                            isSelected: selectedDuplicates.contains(contact.identifier),
-                            isPrimary: index == 0,
-                            scalingFactor: scalingFactor
-                        )
-                    }
-                }
-                .padding(.horizontal, 16 * scalingFactor)
-                
-                // Кнопка для объединения
-                if selectedInGroup >= 2 {
-                    Button(action: {
-                        // Исправлено: теперь при нажатии на кнопку сразу вызываем метод
-                        mergeSelectedContactsInGroup(group)
-                    }) {
-                        HStack {
-                            if isPerformingMerge {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.8)
-                            } else {
-                                Image(systemName: "arrow.triangle.merge")
-                                    .font(.system(size: 16 * scalingFactor, weight: .medium))
-                            }
-                            
-                            Text(isPerformingMerge ? "Merging..." : "Merge \(selectedInGroup) contacts")
-                                .font(.system(size: 17 * scalingFactor, weight: .semibold))
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48 * scalingFactor)
-                        .background(isPerformingMerge ? CMColor.primary.opacity(0.7) : CMColor.primary)
-                        .cornerRadius(12 * scalingFactor)
-                    }
-                    .disabled(isPerformingMerge)
-                    .animation(.easeInOut(duration: 0.2), value: isPerformingMerge)
-                    .padding(.horizontal, 16 * scalingFactor)
-                    .padding(.top, 8 * scalingFactor)
-                }
-            }
-            .padding(.vertical, 8 * scalingFactor)
-        }
-    }
-        
-    private func enhancedDuplicateContactCard(contact: CNContact, isSelected: Bool, isPrimary: Bool, scalingFactor: CGFloat) -> some View {
-        Button(action: {
-            toggleSelection(for: contact.identifier)
+        return Button(action: {
+            // Toggle selection for all contacts in this group
+            toggleSelectAll(for: group)
         }) {
-            HStack(spacing: 12 * scalingFactor) {
-                // Selection checkbox
-                ZStack {
-                    Circle()
-                        .stroke(isSelected ? CMColor.primary : CMColor.border, lineWidth: 2)
-                        .frame(width: 24 * scalingFactor, height: 24 * scalingFactor)
+            GeometryReader { buttonGeometry in
+                VStack(alignment: .leading, spacing: 10 * scalingFactor) {
                     
-                    if isSelected {
-                        Circle()
-                            .fill(CMColor.primary)
-                            .frame(width: 16 * scalingFactor, height: 16 * scalingFactor)
-                        
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 10 * scalingFactor, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                }
-                
-                VStack(alignment: .leading, spacing: 4 * scalingFactor) {
+                    // 1. Icon / Initial
                     HStack {
-                        Text("\(contact.givenName) \(contact.familyName)")
-                            .font(.system(size: 16 * scalingFactor, weight: isPrimary ? .semibold : .regular))
-                            .foregroundColor(CMColor.primaryText)
-                        
-                        if isPrimary {
-                            Text("RECOMMENDED")
-                                .font(.system(size: 10 * scalingFactor, weight: .bold))
+                        ZStack {
+                            Circle()
+                                .fill(CMColor.primary.opacity(0.8))
+                                .frame(width: 44 * scalingFactor, height: 44 * scalingFactor)
+                            
+                            Text(String(primaryContact.givenName.prefix(1).uppercased()))
+                                .font(.system(size: 20 * scalingFactor, weight: .bold))
                                 .foregroundColor(.white)
-                                .padding(.horizontal, 6 * scalingFactor)
-                                .padding(.vertical, 2 * scalingFactor)
-                                .background(CMColor.success)
-                                .cornerRadius(4 * scalingFactor)
-                        }
-                    }
-                    
-                    if let phoneNumber = contact.phoneNumbers.first?.value.stringValue {
-                        Text(phoneNumber)
-                            .font(.system(size: 14 * scalingFactor, weight: .regular))
-                            .foregroundColor(CMColor.secondaryText)
-                    }
-                    
-                    if let email = contact.emailAddresses.first?.value as? String {
-                        Text(email)
-                            .font(.system(size: 14 * scalingFactor, weight: .regular))
-                            .foregroundColor(CMColor.secondaryText)
-                    }
-                    
-                    HStack(spacing: 8 * scalingFactor) {
-                        if contact.phoneNumbers.count > 1 {
-                            Label("\(contact.phoneNumbers.count)", systemImage: "phone")
-                                .font(.system(size: 12 * scalingFactor))
-                                .foregroundColor(CMColor.secondaryText)
                         }
                         
-                        if !contact.emailAddresses.isEmpty {
-                            Label("\(contact.emailAddresses.count)", systemImage: "envelope")
-                                .font(.system(size: 12 * scalingFactor))
-                                .foregroundColor(CMColor.secondaryText)
-                        }
+                        Spacer()
                         
-                        if !contact.organizationName.isEmpty {
-                            Label(contact.organizationName, systemImage: "building")
-                                .font(.system(size: 12 * scalingFactor))
-                                .foregroundColor(CMColor.secondaryText)
-                                .lineLimit(1)
-                        }
+                        // Selection Status
+                        Image(systemName: allSelected ? "checkmark.circle.fill" : (selectedCount > 0 ? "circle.fill" : "circle"))
+                            .font(.system(size: 24 * scalingFactor))
+                            .foregroundColor(allSelected ? CMColor.success : (selectedCount > 0 ? CMColor.primary.opacity(0.7) : CMColor.border))
                     }
+                    
+                    Spacer()
+                    
+                    // 2. Main Title (Updated text)
+                    Text("Potential Match")
+                        .font(.system(size: 12 * scalingFactor, weight: .semibold))
+                        .foregroundColor(CMColor.error)
+                        .padding(.horizontal, 6 * scalingFactor)
+                        .padding(.vertical, 2 * scalingFactor)
+                        .background(CMColor.error.opacity(0.1))
+                        .cornerRadius(4 * scalingFactor)
+                    
+                    // 3. Name & Count (Updated text)
+                    Text("\(primaryContact.givenName) \(primaryContact.familyName)")
+                        .font(.system(size: 18 * scalingFactor, weight: .bold))
+                        .foregroundColor(CMColor.primaryText)
+                        .lineLimit(1)
+                    
+                    Text("\(group.count) Entries")
+                        .font(.system(size: 14 * scalingFactor, weight: .medium))
+                        .foregroundColor(CMColor.secondaryText)
                 }
-                
-                Spacer()
+                .padding(16 * scalingFactor)
+                // --- CORE: Setting height equal to width for a square shape ---
+                .frame(width: buttonGeometry.size.width, height: buttonGeometry.size.width)
+                // -------------------------------------------------------------
+                .background(
+                    RoundedRectangle(cornerRadius: 16 * scalingFactor)
+                        .fill(CMColor.surface)
+                        .shadow(color: .black.opacity(0.1), radius: 6 * scalingFactor, x: 0, y: 3 * scalingFactor)
+                )
             }
-            .padding(.horizontal, 16 * scalingFactor)
-            .padding(.vertical, 12 * scalingFactor)
-            .background(
-                RoundedRectangle(cornerRadius: 8 * scalingFactor)
-                    .fill(isSelected ? CMColor.primary.opacity(0.05) : CMColor.white)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8 * scalingFactor)
-                            .stroke(isSelected ? CMColor.primary : CMColor.border, lineWidth: 1)
-                    )
-            )
+            .aspectRatio(1, contentMode: .fit) // Ensures the button respects the square layout in the grid
         }
     }
+    
+    // MARK: - No Duplicates View
     
     private func noDuplicatesFoundView(scalingFactor: CGFloat) -> some View {
         VStack(spacing: 16 * scalingFactor) {
-            Image(systemName: "checkmark.circle")
-                .font(.system(size: 48 * scalingFactor))
+            Spacer()
+            Image(systemName: "sparkles.square.fill") // Updated icon
+                .font(.system(size: 60 * scalingFactor, weight: .bold))
                 .foregroundColor(CMColor.success)
             
             VStack(spacing: 8 * scalingFactor) {
-                Text("No Duplicates Found")
-                    .font(.system(size: 20 * scalingFactor, weight: .bold))
+                Text("Zero Contact Clutter! 🎉") // Updated text
+                    .font(.system(size: 24 * scalingFactor, weight: .bold))
                     .foregroundColor(CMColor.primaryText)
                 
-                Text("All your contacts are unique. Great job keeping your contacts organized!")
+                Text("All your contacts appear to be unique. No consolidation needed right now.") // Updated text
                     .font(.system(size: 16 * scalingFactor))
                     .foregroundColor(CMColor.secondaryText)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32 * scalingFactor)
             }
+            Spacer()
         }
-        .padding(.vertical, 48 * scalingFactor)
+        .padding(.horizontal, 20 * scalingFactor)
     }
 }

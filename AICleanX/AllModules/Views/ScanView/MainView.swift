@@ -178,9 +178,22 @@ struct MainView: View {
     }
     
     private func generateEmptyStateImage(systemName: String, color: UIColor) -> UIImage? {
-        let config = UIImage.SymbolConfiguration(pointSize: 52, weight: .regular, scale: .large)
-        let image = UIImage(systemName: systemName, withConfiguration: config)
-        return image?.withTintColor(color, renderingMode: .alwaysOriginal)
+        // 1. Создаем базовую конфигурацию символа
+        let config = UIImage.SymbolConfiguration(pointSize: 32, weight: .bold, scale: .large)
+        
+        // 2. Создаем конфигурацию цвета: Hierarchical
+        // Этот метод часто дает лучший результат для заливки SF Symbols
+        let colorConfig = UIImage.SymbolConfiguration.preferringMulticolor()
+        
+        // 3. Объединяем конфигурации
+        let finalConfig = config.applying(colorConfig)
+        
+        // 4. Создаем изображение с объединенной конфигурацией
+        let image = UIImage(systemName: systemName, withConfiguration: finalConfig)
+        
+        // 5. Применяем цвет
+        // В этом режиме withTintColor используется для применения *базового* цвета иерархии
+        return image?.withTintColor(color)
     }
     
     private func handleTap(for type: ScanItemType) {
@@ -341,11 +354,11 @@ struct CategoryCardView: View {
         switch type {
         case .contacts:
             return viewModel.contactsPermissionStatus == .authorized ?
-                generateEmptyStateImage("person.2.fill", .primary) :
+                generateEmptyStateImage("person.1.fill", .primary) :
                 generateEmptyStateImage("lock.fill", .warning)
         case .calendar:
             return viewModel.calendarPermissionStatus == .authorized ?
-                generateEmptyStateImage("calendar", .secondary) :
+                generateEmptyStateImage("calendar.fill", .primary) :
                 generateEmptyStateImage("lock.fill", .warning)
         case .similar:
             return viewModel.previews.similar

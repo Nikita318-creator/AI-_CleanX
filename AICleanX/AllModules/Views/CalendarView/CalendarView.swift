@@ -32,18 +32,18 @@ struct AICalendarView: View {
 
     var intelligentFilteredEvents: [CalendarEvent] {
         let aiCalendarEvents = aiCalendarAgent.events.map { CalendarEvent(from: $0) }
-        
+
         let start = min(aiScanStartDate, aiScanEndDate)
         let end = max(aiScanStartDate, aiScanEndDate)
-        
+
         let filteredByDate = aiCalendarEvents.filter { event in
             return event.date >= start && event.date <= end
         }
-        
+
         let filteredBySearch = filteredByDate.filter { event in
             return queryText.isEmpty || event.title.localizedCaseInsensitiveContains(queryText) || event.source.localizedCaseInsensitiveContains(queryText)
         }
-        
+
         switch currentFilterTab {
         case .aiScanEvents:
             let result = filteredBySearch.filter { !$0.isWhiteListed }
@@ -56,34 +56,28 @@ struct AICalendarView: View {
 
     var formattedStartDate: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "d MMM yyyy"
+        formatter.dateFormat = "MMM d" // Упрощаем для чипа
         return formatter.string(from: aiScanStartDate)
     }
 
     var formattedEndDate: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "d MMM yyyy"
+        formatter.dateFormat = "MMM d" // Упрощаем для чипа
         return formatter.string(from: aiScanEndDate)
     }
 
-    enum CalendarOptimizationFilter {
-        case aiScanEvents
-        case aiSafeList
+    enum CalendarOptimizationFilter: String, CaseIterable {
+        case aiScanEvents = "To Review"
+        case aiSafeList = "Trusted"
     }
 
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Top section with controls
-                VStack(spacing: 20) {
-                    intelligentHeaderView()
-                    dateRangeAndSearchView()
-                    filterSegmentView()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 20)
-                .background(CMColor.background)
+                controlPanelContainer()
+                    .padding(.horizontal)
+                    .padding(.bottom, 15)
+                    .background(CMColor.background)
 
                 if aiCalendarAgent.authorizationStatus == .denied {
                     accessDeniedView()
@@ -100,498 +94,426 @@ struct AICalendarView: View {
                 }
 
                 Spacer()
-                
+
                 if !selectedEventIdentifiers.isEmpty {
                     bottomActionBar()
                         .padding(.horizontal, 20)
-                        .padding(.bottom, 28)
+                        .padding(.vertical, 15)
+                        .background(CMColor.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .padding(.horizontal, 10)
+                        .padding(.bottom, 10)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .background(CMColor.background.ignoresSafeArea())
-        }
-        .navigationBarHidden(true)
-        .sheet(isPresented: $showingAIScanStartDatePicker) {
-            SystemDatePickerView(selectedDate: $aiScanStartDate)
-                .onDisappear {
-                    Task {
-                        await aiCalendarAgent.loadEvents(from: aiScanStartDate, to: aiScanEndDate)
-                    }
-                }
-        }
-        .sheet(isPresented: $showingAIScanEndDatePicker) {
-            SystemDatePickerView(selectedDate: $aiScanEndDate)
-                .onDisappear {
-                    Task {
-                        await aiCalendarAgent.loadEvents(from: aiScanStartDate, to: aiScanEndDate)
-                    }
-                }
-        }
-        .onAppear {
-            if aiCalendarAgent.authorizationStatus == .notDetermined {
-                Task {
-                    await aiCalendarAgent.requestCalendarAccess()
-                }
-            } else {
-                Task {
-                    await aiCalendarAgent.loadEvents(from: aiScanStartDate, to: aiScanEndDate)
-                }
-            }
-        }
-        .alert("Permission Required", isPresented: $showingAIPermissionPrompt) {
-            Button("Open Settings") {
-                if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(settingsUrl)
-                }
-            }
-            Button("Not Now", role: .cancel) { }
-        } message: {
-            Text("Calendar access is needed to analyze and manage your events. Enable it in Settings.")
-        }
-        .alert("Confirm Removal", isPresented: $showingAIOptimizationConfirmation) {
-            Button("Remove \(selectedEventIdentifiers.count)", role: .destructive) {
-                performAIOptimization()
-            }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("Selected events will be permanently removed. This cannot be undone.")
-        }
-        .overlay {
-            if showingOptimizationFailedAlert {
-                CannotDeleteEventView(
-                    eventTitle: failedOptimizationEvents.first?.0.calendar ?? "Unknown Calendar",
-                    message: optimizationFailureMessage,
-                    onGuide: {
-                        showingOptimizationFailedAlert = false
-                        showingAIGuide = true
-                    },
-                    onCancel: {
-                        showingOptimizationFailedAlert = false
-                    }
-                )
-                .animation(.easeInOut(duration: 0.3), value: showingOptimizationFailedAlert)
-            }
-        }
-        .sheet(isPresented: $showingAIGuide) {
-            CalendarInstructionsView()
-        }
-    }
-    
-    // MARK: - Header Components
-    
-    private func intelligentHeaderView() -> some View {
-        HStack(spacing: 16) {
-            // Close button
-            Button(action: { dismiss() }) {
-                ZStack {
-                    Circle()
-                        .fill(CMColor.surface)
-                        .frame(width: 40, height: 40)
-                    
-                    Image(systemName: "xmark")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(CMColor.primaryText)
-                }
-            }
-            
-            Spacer()
-            
-            // Title with icon
-            HStack(spacing: 8) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(CMColor.primary)
-                
-                Text("Smart Cleanup")
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundColor(CMColor.primaryText)
-            }
-            
-            Spacer()
-            
-            // Select toggle
-            Button(action: {
-                withAnimation(.spring(response: 0.3)) {
-                    if selectedEventIdentifiers.count == intelligentFilteredEvents.count && !intelligentFilteredEvents.isEmpty {
-                        selectedEventIdentifiers.removeAll()
-                    } else {
-                        selectedEventIdentifiers = Set(intelligentFilteredEvents.map { $0.eventIdentifier })
-                    }
-                }
-            }) {
-                HStack(spacing: 6) {
-                    Image(systemName: selectedEventIdentifiers.count == intelligentFilteredEvents.count && !intelligentFilteredEvents.isEmpty ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 18, weight: .medium))
-                    
-                    Text(selectedEventIdentifiers.count == intelligentFilteredEvents.count && !intelligentFilteredEvents.isEmpty ? "Clear" : "All")
-                        .font(.system(size: 15, weight: .semibold))
-                }
-                .foregroundColor(CMColor.primary)
-            }
-        }
-    }
-    
-    private func dateRangeAndSearchView() -> some View {
-        VStack(spacing: 14) {
-            // Date range selector
-            HStack(spacing: 10) {
-                Button(action: { showingAIScanStartDatePicker = true }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "calendar")
-                            .font(.system(size: 14))
-                        
-                        Text(formattedStartDate)
-                            .font(.system(size: 15, weight: .medium))
-                    }
-                    .foregroundColor(CMColor.primary)
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 16)
-                    .background(CMColor.surface)
-                    .cornerRadius(10)
-                }
-                .frame(maxWidth: .infinity)
-                
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(CMColor.secondaryText)
-                
-                Button(action: { showingAIScanEndDatePicker = true }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "calendar")
-                            .font(.system(size: 14))
-                        
-                        Text(formattedEndDate)
-                            .font(.system(size: 15, weight: .medium))
-                    }
-                    .foregroundColor(CMColor.primary)
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 16)
-                    .background(CMColor.surface)
-                    .cornerRadius(10)
-                }
-                .frame(maxWidth: .infinity)
-            }
-            
-            // Search bar
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 16))
-                    .foregroundColor(CMColor.secondaryText)
-                
-                TextField("Find events...", text: $queryText)
-                    .foregroundColor(CMColor.primaryText)
-                    .font(.system(size: 16))
-                    .submitLabel(.search)
-                
-                if !queryText.isEmpty {
-                    Button(action: {
-                        withAnimation {
-                            queryText = ""
-                        }
-                    }) {
+            .navigationTitle("Smart Calendar\nCleanup")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { dismiss() }) {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 18))
                             .foregroundColor(CMColor.secondaryText)
                     }
                 }
-            }
-            .padding(.vertical, 12)
-            .padding(.horizontal, 16)
-            .background(CMColor.surface)
-            .cornerRadius(10)
-        }
-    }
-    
-    private func filterSegmentView() -> some View {
-        HStack(spacing: 6) {
-            ForEach([CalendarOptimizationFilter.aiScanEvents, .aiSafeList], id: \.self) { filter in
-                Button(action: {
-                    withAnimation(.spring(response: 0.3)) {
-                        currentFilterTab = filter
-                        selectedEventIdentifiers.removeAll()
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: toggleSelectAll) {
+                        Text(selectedEventIdentifiers.count == intelligentFilteredEvents.count && !intelligentFilteredEvents.isEmpty ? "Clear All" : "Select All")
+                            .font(.subheadline)
+                            .foregroundColor(CMColor.primary)
                     }
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: filter == .aiScanEvents ? "list.bullet" : "checkmark.shield")
-                            .font(.system(size: 14, weight: .semibold))
-                        
-                        Text(intelligentFilterName(for: filter))
-                            .font(.system(size: 15, weight: .semibold))
-                    }
-                    .foregroundColor(currentFilterTab == filter ? .white : CMColor.secondaryText)
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 18)
-                    .background(
-                        currentFilterTab == filter ? CMColor.primary : CMColor.surface
-                    )
-                    .cornerRadius(10)
+                    .opacity(intelligentFilteredEvents.isEmpty && queryText.isEmpty ? 0 : 1)
                 }
             }
         }
-        .frame(maxWidth: .infinity)
+        .navigationViewStyle(.stack)
+        
+        .sheet(isPresented: $showingAIScanStartDatePicker) {
+            if #available(iOS 16.0, *) {
+                SystemDatePickerView(selectedDate: $aiScanStartDate)
+                    .presentationDetents([.medium, .large])
+                    .onDisappear { Task { await aiCalendarAgent.loadEvents(from: aiScanStartDate, to: aiScanEndDate) } }
+            } else {
+                SystemDatePickerView(selectedDate: $aiScanStartDate)
+                    .onDisappear { Task { await aiCalendarAgent.loadEvents(from: aiScanStartDate, to: aiScanEndDate) } }
+            }
+        }
+        .sheet(isPresented: $showingAIScanEndDatePicker) {
+            if #available(iOS 16.0, *) {
+                SystemDatePickerView(selectedDate: $aiScanEndDate)
+                    .presentationDetents([.medium, .large])
+                    .onDisappear { Task { await aiCalendarAgent.loadEvents(from: aiScanStartDate, to: aiScanEndDate) } }
+            } else {
+                SystemDatePickerView(selectedDate: $aiScanEndDate)
+                    .onDisappear { Task { await aiCalendarAgent.loadEvents(from: aiScanStartDate, to: aiScanEndDate) } }
+            }
+        }
+        .onAppear {
+            if aiCalendarAgent.authorizationStatus == .notDetermined {
+                Task { await aiCalendarAgent.requestCalendarAccess() }
+            } else {
+                Task { await aiCalendarAgent.loadEvents(from: aiScanStartDate, to: aiScanEndDate) }
+            }
+        }
+        .alert("Permission Required", isPresented: $showingAIPermissionPrompt) {
+             Button("Open Settings") {
+                 if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                     UIApplication.shared.open(settingsUrl)
+                 }
+             }
+             Button("Not Now", role: .cancel) { }
+         } message: { Text("Calendar access is needed to analyze and manage your events. Enable it in Settings.") }
+         .alert("Confirm Removal", isPresented: $showingAIOptimizationConfirmation) {
+             Button("Remove \(selectedEventIdentifiers.count)", role: .destructive) { performAIOptimization() }
+             Button("Cancel", role: .cancel) { }
+         } message: { Text("Selected events will be permanently removed. This cannot be undone.") }
+         .overlay {
+             if showingOptimizationFailedAlert {
+                 CannotDeleteEventView(
+                     eventTitle: failedOptimizationEvents.first?.0.calendar ?? "Unknown Calendar",
+                     message: optimizationFailureMessage,
+                     onGuide: { showingOptimizationFailedAlert = false; showingAIGuide = true },
+                     onCancel: { showingOptimizationFailedAlert = false }
+                 )
+                 .animation(.easeInOut(duration: 0.3), value: showingOptimizationFailedAlert)
+             }
+         }
+         .sheet(isPresented: $showingAIGuide) {
+             CalendarInstructionsView()
+         }
     }
     
-    // MARK: - Content Views
+    // MARK: - Контейнер Управления (Clean & Grouped)
+    private func controlPanelContainer() -> some View {
+        VStack(spacing: 15) {
+            // 1. Поиск
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(CMColor.secondaryText)
+                
+                TextField("Search event title or source...", text: $queryText)
+                    .foregroundColor(CMColor.primaryText)
+                    .font(.body)
+                
+                if !queryText.isEmpty {
+                    Button(action: { queryText = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(CMColor.secondaryText.opacity(0.7))
+                    }
+                }
+            }
+            .padding(.horizontal, 15)
+            .padding(.vertical, 10)
+            .background(CMColor.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            
+            // 2. Выбор Даты и Фильтров - ИСПРАВЛЕНО
+            HStack {
+                // Две отдельные кнопки для выбора диапазона
+                dateRangeSelectionView() // Внутри теперь две кнопки
+                
+                Spacer()
+                
+                // Нативный сегментированный Picker для фильтров
+                Picker("Filter", selection: $currentFilterTab) {
+                    ForEach(CalendarOptimizationFilter.allCases, id: \.self) { filter in
+                        Text(filter.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 180)
+                .onChange(of: currentFilterTab) { _ in selectedEventIdentifiers.removeAll() }
+            }
+        }
+        .padding(.top, 10)
+    }
+
+    private func dateRangeSelectionView() -> some View {
+        // ИСПРАВЛЕНО: Вертикальный стек из двух кнопок заменён на горизонтальный стек чипов
+        HStack(spacing: 8) {
+            
+            // 1. Кнопка Начальной Даты
+            Button(action: { showingAIScanStartDatePicker = true }) {
+                VStack(spacing: 4) {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.subheadline)
+                    Text(formattedStartDate)
+                        .font(.subheadline.weight(.medium))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(CMColor.primary.opacity(0.15))
+                .foregroundColor(CMColor.primary)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            
+            // 2. Разделитель
+            Image(systemName: "arrow.right")
+                .font(.caption)
+                .foregroundColor(CMColor.secondaryText.opacity(0.7))
+            
+            // 3. Кнопка Конечной Даты
+            Button(action: { showingAIScanEndDatePicker = true }) {
+                VStack(spacing: 4) {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.subheadline)
+                    Text(formattedEndDate)
+                        .font(.subheadline.weight(.medium))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(CMColor.primary.opacity(0.15))
+                .foregroundColor(CMColor.primary)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+        }
+    }
     
     private func eventsScrollView() -> some View {
         ScrollView {
-            LazyVStack(spacing: 12) {
+            LazyVStack(spacing: 10) {
                 ForEach(intelligentFilteredEvents) { event in
-                    EventRowView(
-                        event: event,
-                        isSelected: selectedEventIdentifiers.contains(event.eventIdentifier),
-                        onSelect: {
-                            withAnimation(.spring(response: 0.3)) {
-                                if selectedEventIdentifiers.contains(event.eventIdentifier) {
-                                    selectedEventIdentifiers.remove(event.eventIdentifier)
-                                } else {
-                                    selectedEventIdentifiers.insert(event.eventIdentifier)
-                                }
-                            }
-                        }
-                    )
-                    .padding(.horizontal, 20)
+                    eventRowStyled(event: event)
                 }
             }
-            .padding(.vertical, 8)
+            .padding(.horizontal)
+            .padding(.top, 5)
+            .padding(.bottom, 50)
         }
     }
-    
-    private func searchEmptyView() -> some View {
-        VStack(spacing: 20) {
-            Image(systemName: "magnifyingglass.circle")
-                .font(.system(size: 64, weight: .light))
-                .foregroundColor(CMColor.secondaryText.opacity(0.6))
-            
-            VStack(spacing: 10) {
-                Text("Nothing Found")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(CMColor.primaryText)
-                
-                Text("No events match your search criteria. Try different keywords or adjust the date range.")
-                    .font(.system(size: 16))
-                    .foregroundColor(CMColor.secondaryText)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
+
+    private func eventRowStyled(event: CalendarEvent) -> some View {
+        HStack(alignment: .top, spacing: 15) {
+            Button(action: { toggleSelection(for: event) }) {
+                Image(systemName: selectedEventIdentifiers.contains(event.eventIdentifier) ? "checkmark.square.fill" : "square")
+                    .font(.title3)
+                    .foregroundColor(selectedEventIdentifiers.contains(event.eventIdentifier) ? CMColor.primary : CMColor.secondaryText.opacity(0.4))
+                    .frame(width: 25, height: 25)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.5), value: selectedEventIdentifiers.contains(event.eventIdentifier))
             }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.title)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(CMColor.primaryText)
+                    .lineLimit(2)
+                
+                HStack(spacing: 8) {
+                    Image(systemName: "clock")
+                        .font(.caption)
+                    Text(event.source)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                    Spacer()
+                    Text(event.date, style: .date)
+                        .font(.caption)
+                }
+                .foregroundColor(CMColor.secondaryText)
+            }
+            
+            Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(15)
+        .background(CMColor.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 3)
     }
-    
+
     private func bottomActionBar() -> some View {
         HStack(spacing: 12) {
             if currentFilterTab == .aiSafeList {
-                Button(action: { removeEventsFromAISafeList() }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "shield.slash")
-                            .font(.system(size: 16, weight: .semibold))
-                        
-                        Text("Unmark")
-                            .font(.system(size: 17, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(CMColor.secondary)
-                    .cornerRadius(14)
-                }
+                ActionButton(
+                    title: "Unmark Safe",
+                    icon: "shield.lefthalf.filled.slash",
+                    color: CMColor.secondary,
+                    action: removeEventsFromAISafeList
+                )
             } else {
-                Button(action: { addEventsToAISafeList() }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.shield")
-                            .font(.system(size: 16, weight: .semibold))
-                        
-                        Text("Mark Safe")
-                            .font(.system(size: 17, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(CMColor.secondary)
-                    .cornerRadius(14)
-                }
+                ActionButton(
+                    title: "Mark Safe (\(selectedEventIdentifiers.count))",
+                    icon: "shield.lefthalf.filled",
+                    color: CMColor.secondary,
+                    action: addEventsToAISafeList
+                )
                 
-                Button(action: { showingAIOptimizationConfirmation = true }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 16, weight: .semibold))
-                        
-                        Text("Remove")
-                            .font(.system(size: 17, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(CMColor.error)
-                    .cornerRadius(14)
-                }
+                ActionButton(
+                    title: "Remove (\(selectedEventIdentifiers.count))",
+                    icon: "trash.fill",
+                    color: CMColor.error,
+                    action: { showingAIOptimizationConfirmation = true }
+                )
             }
         }
     }
-    
-    // MARK: - State Views
-    
+
+    private func ActionButton(title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 17, weight: .bold))
+                Text(title)
+                    .font(.system(size: 17, weight: .bold))
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(color)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+    }
+
     private func requestAccessView() -> some View {
-        VStack(spacing: 28) {
-            ZStack {
-                Circle()
-                    .fill(CMColor.primary.opacity(0.1))
-                    .frame(width: 100, height: 100)
-                
-                Image(systemName: "lock.open")
-                    .font(.system(size: 50, weight: .light))
-                    .foregroundColor(CMColor.primary)
-            }
+        VStack(spacing: 18) {
+            Image(systemName: "calendar.badge.exclamationmark")
+                .font(.system(size: 60, weight: .regular))
+                .foregroundColor(CMColor.primary)
             
-            VStack(spacing: 14) {
-                Text("Access Needed")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(CMColor.primaryText)
-                
-                Text("To help you manage calendar events, we need permission to access your calendars. Your information stays private and secure on your device.")
-                    .font(.system(size: 16))
-                    .foregroundColor(CMColor.secondaryText)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-                    .lineSpacing(4)
-            }
+            Text("Calendar Access Required")
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundColor(CMColor.primaryText)
             
-            Button(action: {
-                Task {
-                    await aiCalendarAgent.requestCalendarAccess()
-                }
-            }) {
-                HStack(spacing: 10) {
-                    Image(systemName: "hand.raised")
-                        .font(.system(size: 18, weight: .semibold))
-                    
-                    Text("Grant Access")
-                        .font(.system(size: 17, weight: .semibold))
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(CMColor.primary)
-                .cornerRadius(14)
+            Text("To start cleaning, please grant access to your calendar events.")
+                .font(.subheadline)
+                .foregroundColor(CMColor.secondaryText)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+            
+            Button(action: { Task { await aiCalendarAgent.requestCalendarAccess() } }) {
+                Text("Grant Access")
+                    .frame(maxWidth: 250)
+                    .padding(.vertical, 12)
+                    .background(CMColor.primary)
+                    .foregroundColor(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
-            .padding(.horizontal, 32)
+            .padding(.top, 10)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     private func accessDeniedView() -> some View {
-        VStack(spacing: 28) {
-            ZStack {
-                Circle()
-                    .fill(CMColor.error.opacity(0.1))
-                    .frame(width: 100, height: 100)
-                
-                Image(systemName: "exclamationmark.lock")
-                    .font(.system(size: 50, weight: .light))
-                    .foregroundColor(CMColor.error)
-            }
+        VStack(spacing: 18) {
+            Image(systemName: "lock.circle.fill")
+                .font(.system(size: 60, weight: .regular))
+                .foregroundColor(CMColor.error)
             
-            VStack(spacing: 14) {
-                Text("Access Blocked")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(CMColor.primaryText)
-                
-                Text("Calendar access is currently disabled. To use this feature, please enable it in your device Settings under Privacy & Security.")
-                    .font(.system(size: 16))
-                    .foregroundColor(CMColor.secondaryText)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-                    .lineSpacing(4)
-            }
+            Text("Access Denied")
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundColor(CMColor.primaryText)
+            
+            Text("Please enable Calendar access in the device settings to use this feature.")
+                .font(.subheadline)
+                .foregroundColor(CMColor.secondaryText)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
             
             Button(action: { showingAIPermissionPrompt = true }) {
-                HStack(spacing: 10) {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 18, weight: .semibold))
-                    
-                    Text("Open Settings")
-                        .font(.system(size: 17, weight: .semibold))
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(CMColor.primary)
-                .cornerRadius(14)
+                Text("Open Settings")
+                    .frame(maxWidth: 250)
+                    .padding(.vertical, 12)
+                    .background(CMColor.error.opacity(0.8))
+                    .foregroundColor(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
-            .padding(.horizontal, 32)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-    
-    private func processingView() -> some View {
-        VStack(spacing: 24) {
-            ProgressView()
-                .scaleEffect(1.8)
-                .tint(CMColor.primary)
-            
-            VStack(spacing: 8) {
-                Text("Analyzing Events")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(CMColor.primaryText)
-                
-                Text("Please wait while we scan your calendar")
-                    .font(.system(size: 15))
-                    .foregroundColor(CMColor.secondaryText)
-            }
+            .padding(.top, 10)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     private func allClearView() -> some View {
-        VStack(spacing: 28) {
-            ZStack {
-                Circle()
-                    .fill(CMColor.primary.opacity(0.1))
-                    .frame(width: 100, height: 100)
-                
-                Image(systemName: "checkmark.circle")
-                    .font(.system(size: 50, weight: .light))
-                    .foregroundColor(CMColor.primary)
-            }
+        VStack(spacing: 18) {
+            Image(systemName: "hand.thumbsup.fill")
+                .font(.system(size: 60, weight: .medium))
+                .foregroundColor(CMColor.secondary)
             
-            VStack(spacing: 14) {
-                Text("All Clean!")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(CMColor.primaryText)
-                
-                Text("No events found in the selected date range that need attention. Your calendar looks good!")
-                    .font(.system(size: 16))
-                    .foregroundColor(CMColor.secondaryText)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-                    .lineSpacing(4)
-            }
+            Text("All Clear!")
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundColor(CMColor.primaryText)
+            
+            Text("No suspicious events found in the current date range. Your calendar is clean.")
+                .font(.subheadline)
+                .foregroundColor(CMColor.secondaryText)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func searchEmptyView() -> some View {
+        VStack(spacing: 15) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 40, weight: .light))
+                .foregroundColor(CMColor.secondaryText.opacity(0.6))
+            
+            Text("No Matches Found")
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundColor(CMColor.primaryText)
+            
+            Text("Try different keywords or check the selected date range above.")
+                .font(.subheadline)
+                .foregroundColor(CMColor.secondaryText)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private func processingView() -> some View {
+        VStack(spacing: 20) {
+            ProgressView()
+                .scaleEffect(1.5)
+                .tint(CMColor.primary)
+            
+            Text("Analyzing Events...")
+                .font(.headline)
+                .foregroundColor(CMColor.primaryText)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     // MARK: - Helper Methods
+
+    private func toggleSelection(for event: CalendarEvent) {
+        withAnimation(.spring(response: 0.3)) {
+            if selectedEventIdentifiers.contains(event.eventIdentifier) {
+                selectedEventIdentifiers.remove(event.eventIdentifier)
+            } else {
+                selectedEventIdentifiers.insert(event.eventIdentifier)
+            }
+        }
+    }
+    
+    private func toggleSelectAll() {
+        withAnimation(.spring(response: 0.3)) {
+            if selectedEventIdentifiers.count == intelligentFilteredEvents.count && !intelligentFilteredEvents.isEmpty {
+                selectedEventIdentifiers.removeAll()
+            } else {
+                selectedEventIdentifiers = Set(intelligentFilteredEvents.map { $0.eventIdentifier })
+            }
+        }
+    }
     
     private func addEventsToAISafeList() {
         Task {
             let selectedEvents = getSelectedEvents()
-            
             for event in selectedEvents {
                 let matchingEvent = aiCalendarAgent.events.first(where: { systemEvent in
                     let idMatches = systemEvent.eventIdentifier == event.originalEventIdentifier
                     let dateMatches = Calendar.current.isDate(systemEvent.startDate, inSameDayAs: event.date)
                     return idMatches && dateMatches
                 })
-                
                 if let systemEvent = matchingEvent {
                     aiCalendarAgent.addToWhiteList(systemEvent)
                 }
             }
-            
             await MainActor.run {
-                withAnimation {
-                    selectedEventIdentifiers.removeAll()
-                }
+                withAnimation { selectedEventIdentifiers.removeAll() }
             }
         }
     }
@@ -607,11 +529,8 @@ struct AICalendarView: View {
                     aiCalendarAgent.removeFromWhiteList(systemEvent)
                 }
             }
-            
             await MainActor.run {
-                withAnimation {
-                    selectedEventIdentifiers.removeAll()
-                }
+                withAnimation { selectedEventIdentifiers.removeAll() }
             }
         }
     }
@@ -621,7 +540,7 @@ struct AICalendarView: View {
             let selectedEvents = getSelectedEvents()
             var systemEventsToOptimize: [AICalendarSystemEvent] = []
             var notFoundEvents: [CalendarEvent] = []
-            
+
             for event in selectedEvents {
                 if let systemEvent = aiCalendarAgent.events.first(where: {
                     $0.eventIdentifier == event.originalEventIdentifier &&
@@ -632,14 +551,14 @@ struct AICalendarView: View {
                     notFoundEvents.append(event)
                 }
             }
-            
+
             let result = await aiCalendarAgent.deleteEvents(systemEventsToOptimize)
-            
+
             await MainActor.run {
                 selectedEventIdentifiers.removeAll()
-                
+
                 var allFailedEvents: [(AICalendarSystemEvent, AICalendarDeletionError)] = result.failedEvents
-                
+
                 for notFoundEvent in notFoundEvents {
                     let tempSystemEvent = AICalendarSystemEvent(
                         eventIdentifier: notFoundEvent.originalEventIdentifier,
@@ -653,14 +572,14 @@ struct AICalendarView: View {
                     )
                     allFailedEvents.append((tempSystemEvent, .eventNotFound))
                 }
-                
+
                 if !allFailedEvents.isEmpty {
                     failedOptimizationEvents = allFailedEvents
-                    
+
                     if let firstCannotDelete = allFailedEvents.first {
                         optimizationFailureMessage = firstCannotDelete.1.localizedDescription
                     }
-                    
+
                     showingOptimizationFailedAlert = true
                 }
             }
@@ -668,16 +587,7 @@ struct AICalendarView: View {
     }
     
     private func getSelectedEvents() -> [CalendarEvent] {
-        return intelligentFilteredEvents.filter { event in
-            selectedEventIdentifiers.contains(event.eventIdentifier)
-        }
-    }
-    
-    private func intelligentFilterName(for filter: CalendarOptimizationFilter) -> String {
-        switch filter {
-        case .aiScanEvents: return "To Review"
-        case .aiSafeList: return "Trusted"
-        }
+        return intelligentFilteredEvents.filter { selectedEventIdentifiers.contains($0.eventIdentifier) }
     }
 }
 
@@ -759,7 +669,6 @@ struct EventRowView: View {
 }
 
 // MARK: - Deletion Alert View (Redesigned)
-
 struct CannotDeleteEventView: View {
     let eventTitle: String
     let message: String
@@ -829,16 +738,16 @@ struct CannotDeleteEventView: View {
                     .fill(CMColor.border.opacity(0.5))
                     .frame(height: 0.5)
                 
-                // Action buttons row
+                // Action buttons row (ФИНАЛЬНЫЙ ФИКС)
                 HStack(spacing: 0) {
                     // View instructions
                     Button(action: onGuide) {
                         Text("View Instructions")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(CMColor.primary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
+                            .frame(maxWidth: .infinity) // <-- Удалили maxHeight: .infinity
                     }
+                    .frame(height: 60) // Фиксированная высота кнопки
                     
                     Rectangle()
                         .fill(CMColor.border.opacity(0.5))
@@ -849,15 +758,17 @@ struct CannotDeleteEventView: View {
                         Text("Dismiss")
                             .font(.system(size: 16, weight: .regular))
                             .foregroundColor(CMColor.secondaryText)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
+                            .frame(maxWidth: .infinity) // <-- Удалили maxHeight: .infinity
                     }
+                    .frame(height: 60) // Фиксированная высота кнопки
                 }
             }
             .background(CMColor.surface)
             .cornerRadius(18)
             .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 8)
             .padding(.horizontal, 32)
+            // <-- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Заставляем Vstack использовать минимальную высоту.
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
