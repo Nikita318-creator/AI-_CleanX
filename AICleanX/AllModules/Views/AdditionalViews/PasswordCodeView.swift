@@ -1,8 +1,8 @@
 import SwiftUI
-import LocalAuthentication // Необходим для LAContext
+import LocalAuthentication // Required for LAContext
 
-// MARK: - 1. Вспомогательный компонент: ShakeEffect
-// Эффект "тряски" для визуального отображения ошибки ввода
+// MARK: - 1. Utility Component: ShakeEffect
+// The "shake" effect for visual display of input error
 struct ShakeEffect: GeometryEffect {
     var shakes: CGFloat
     var animatableData: CGFloat {
@@ -11,20 +11,20 @@ struct ShakeEffect: GeometryEffect {
     }
 
     func effectValue(size: CGSize) -> ProjectionTransform {
-        // Смещение влево-вправо на 8pt
+        // Offset left-right by 8pt
         let x = sin(shakes * .pi * 2) * 8
         return ProjectionTransform(CGAffineTransform(translationX: x, y: 0))
     }
 }
 
-// MARK: - 2. Вспомогательный компонент: CodeInputCell
-// Квадратная ячейка для отображения цифры PIN-кода
+// MARK: - 2. Utility Component: CodeInputCell
+// Square cell to display a PIN code digit
 struct CodeInputCell: View {
     let digit: Character?
     let isActive: Bool
     let isError: Bool
     
-    // Фактор масштабирования для адаптивности
+    // Scaling factor for adaptivity
     private var scalingFactor: CGFloat {
         UIScreen.main.bounds.height / 844
     }
@@ -40,7 +40,7 @@ struct CodeInputCell: View {
     }
     
     private var cellColor: Color {
-        // Цвет поверхности, чтобы придать объем
+        // Surface color to give depth
         return CMColor.surface
     }
 
@@ -64,8 +64,8 @@ struct CodeInputCell: View {
 }
 
 
-// MARK: - 3. Вспомогательный компонент: KeyboardButton
-// Кнопка с неоморфным дизайном (квадрат с закруглениями и тенями)
+// MARK: - 3. Utility Component: KeyboardButton
+// Button with a neumorphic design (rounded square with shadows)
 struct KeyboardButton: View {
     let text: String
     let action: () -> Void
@@ -97,11 +97,11 @@ struct KeyboardButton: View {
                 .frame(width: size * scalingFactor, height: size * scalingFactor)
                 .background(buttonColor)
                 .clipShape(RoundedRectangle(cornerRadius: 20 * scalingFactor))
-                // Внешняя тень для эффекта "выпуклости"
+                // Outer shadow for "embossed" effect
                 .shadow(color: CMColor.black.opacity(isPressed ? 0.05 : 0.15), radius: isPressed ? 3 : 8, x: isPressed ? 1 : 4, y: isPressed ? 1 : 4)
-                // Светлая тень для эффекта "объема"
+                // Light shadow for "depth" effect
                 .shadow(color: CMColor.white.opacity(isPressed ? 0.0 : 0.6), radius: isPressed ? 3 : 8, x: isPressed ? -1 : -4, y: isPressed ? -1 : -4)
-                // Внутренняя обводка при нажатии для эффекта "вдавливания"
+                // Inner stroke when pressed for "in-pressed" effect
                 .overlay(
                     RoundedRectangle(cornerRadius: 20 * scalingFactor)
                         .stroke(isPressed ? CMColor.primary.opacity(0.3) : Color.clear, lineWidth: 2)
@@ -114,7 +114,7 @@ struct KeyboardButton: View {
 }
 
 
-// MARK: - 4. Основная структура: PINView
+// MARK: - 4. Main Structure: PINView
 struct PINView: View {
     @State private var inputCode: String = ""
     @State private var codeFlowState: PinSetupState = .entry
@@ -177,7 +177,7 @@ struct PINView: View {
                 // MARK: - Header with Back Button
                 HStack {
                     Button(action: {
-                        // Логика кнопки "Назад"
+                        // Back button logic
                         onBackButtonTapped()
                     }) {
                         HStack(spacing: 6 * scalingFactor) {
@@ -185,7 +185,8 @@ struct PINView: View {
                                 .font(.system(size: 17, weight: .semibold))
                                 .foregroundColor(CMColor.primary)
                             
-                            Text("Back")
+                            // *** NEW STRING ***
+                            Text("Go Back")
                                 .font(.system(size: 17, weight: .regular))
                                 .foregroundColor(CMColor.primary)
                         }
@@ -217,15 +218,15 @@ struct PINView: View {
                     HStack(spacing: 16 * scalingFactor) {
                         ForEach(0..<requiredLength, id: \.self) { index in
                             CodeInputCell(
-                                // Передаем цифру, если она есть в inputCode
+                                // Pass the digit if it exists in inputCode
                                 digit: index < inputCode.count ? inputCode[inputCode.index(inputCode.startIndex, offsetBy: index)] : nil,
-                                // Ячейка активна, если в ней есть введенная цифра
+                                // The cell is active if it contains an entered digit
                                 isActive: index < inputCode.count,
                                 isError: displayError
                             )
                         }
                     }
-                    // Добавляем ShakeEffect на весь ряд ячеек при ошибке
+                    // Apply ShakeEffect to the entire row of cells on error
                     .modifier(ShakeEffect(shakes: displayError ? 2 : 0))
                     
                     if displayError {
@@ -264,7 +265,7 @@ struct PINView: View {
                                     .font(.system(size: 24 * scalingFactor, weight: .regular))
                                     .foregroundColor(CMColor.primaryText)
                                     .frame(width: 72 * scalingFactor, height: 72 * scalingFactor)
-                                    // Обновляем фон и форму для соответствия стилю KeyboardButton
+                                    // Update background and shape to match KeyboardButton style
                                     .background(CMColor.surface)
                                     .clipShape(RoundedRectangle(cornerRadius: 20 * scalingFactor))
                                     .shadow(color: CMColor.black.opacity(0.15), radius: 8, x: 4, y: 4)
@@ -287,7 +288,7 @@ struct PINView: View {
                                 .font(.system(size: 24 * scalingFactor, weight: .regular))
                                 .foregroundColor(CMColor.primaryText)
                                 .frame(width: 72 * scalingFactor, height: 72 * scalingFactor)
-                                // Обновляем фон и форму для соответствия стилю KeyboardButton
+                                // Update background and shape to match KeyboardButton style
                                 .background(CMColor.surface)
                                 .clipShape(RoundedRectangle(cornerRadius: 20 * scalingFactor))
                                 .shadow(color: CMColor.black.opacity(0.15), radius: 8, x: 4, y: 4)
@@ -317,20 +318,26 @@ struct PINView: View {
         if isChangingPasscode {
             switch changePasscodeFlow {
             case .verifyingOldPin:
-                return "Change Password"
+                // *** NEW STRING ***
+                return "Update Secure Code"
             case .settingNewPin:
-                return "Enter New PIN"
+                // *** NEW STRING ***
+                return "Establish New PIN"
             case .confirmingNewPin:
-                return "Confirm New PIN"
+                // *** NEW STRING ***
+                return "Verify New PIN"
             }
         } else {
             switch codeFlowState {
             case .setup:
-                return "Create Password"
+                // *** NEW STRING ***
+                return "Set Up Access Code"
             case .entry:
-                return "Safe Storage"
+                // *** NEW STRING ***
+                return "Protected Vault"
             case .confirm:
-                return "Confirm PIN"
+                // *** NEW STRING ***
+                return "Confirm Access Code"
             }
         }
     }
@@ -339,20 +346,26 @@ struct PINView: View {
         if isChangingPasscode {
             switch changePasscodeFlow {
             case .verifyingOldPin:
-                return "Enter your current PIN to continue"
+                // *** NEW STRING ***
+                return "Input your existing security code to proceed."
             case .settingNewPin:
-                return "Create a new 4-digit PIN"
+                // *** NEW STRING ***
+                return "Choose a new 4-digit secret key."
             case .confirmingNewPin:
-                return "Confirm your new PIN"
+                // *** NEW STRING ***
+                return "Please re-enter your new secret key."
             }
         } else {
             switch codeFlowState {
             case .setup:
-                return "Create a 4-digit PIN to secure your safe storage"
+                // *** NEW STRING ***
+                return "Define a 4-digit code for your secure storage area."
             case .entry:
-                return "Enter your PIN to unlock"
+                // *** NEW STRING ***
+                return "Enter your code to open the vault."
             case .confirm:
-                return "Confirm your 4-digit PIN"
+                // *** NEW STRING ***
+                return "Confirm the 4-digit code you just created."
             }
         }
     }
@@ -377,8 +390,6 @@ struct PINView: View {
     }
     
     // MARK: - Helper Methods
-    
-    // Устаревший метод dotColor удален
     
     private func hideError() {
         if displayError {
@@ -442,7 +453,8 @@ struct PINView: View {
                     }
                 }
             } else {
-                displayErrorState(message: "PINs don't match. Please try again.")
+                // *** NEW STRING ***
+                displayErrorState(message: "Codes do not match. Please restart setup.")
                 inputCode = ""
                 tempCode = ""
                 codeFlowState = .setup
@@ -462,7 +474,8 @@ struct PINView: View {
                     }
                 }
             } else {
-                displayErrorState(message: "Incorrect PIN. Please try again.")
+                // *** NEW STRING ***
+                displayErrorState(message: "Invalid code entered. Please retry.")
                 inputCode = ""
                 
                 let errorFeedback = UINotificationFeedbackGenerator()
@@ -481,7 +494,8 @@ struct PINView: View {
                     changePasscodeFlow = .settingNewPin
                 }
             } else {
-                displayErrorState(message: "Incorrect PIN. Please try again.")
+                // *** NEW STRING ***
+                displayErrorState(message: "Invalid current code. Access denied.")
                 inputCode = ""
                 let errorFeedback = UINotificationFeedbackGenerator()
                 errorFeedback.notificationOccurred(.error)
@@ -503,7 +517,8 @@ struct PINView: View {
                     dismiss()
                 }
             } else {
-                displayErrorState(message: "PINs don't match. Please try again.")
+                // *** NEW STRING ***
+                displayErrorState(message: "Confirmation failed. New codes mismatch.")
                 inputCode = ""
                 tempCode = ""
                 withAnimation {
@@ -546,7 +561,8 @@ struct PINView: View {
         guard isBiometricPromptAvailable else { return }
         
         let context = LAContext()
-        let reason = "Use biometrics to access your secure storage."
+        // *** NEW STRING ***
+        let reason = "Authenticate with biometrics for secure access."
         
         context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, error in
             DispatchQueue.main.async {
@@ -571,17 +587,21 @@ struct PINView: View {
         
         switch error.code {
         case LAError.biometryNotAvailable.rawValue:
-            message = "Biometric authentication is not available."
+            // *** NEW STRING ***
+            message = "Biometric recognition is unavailable on this device."
         case LAError.biometryNotEnrolled.rawValue:
-            message = "Biometric data is not configured."
+            // *** NEW STRING ***
+            message = "Your biometric identity is not set up."
         case LAError.biometryLockout.rawValue:
-            message = "Biometrics is locked. Try again later."
+            // *** NEW STRING ***
+            message = "Biometric access is temporarily disabled."
         case LAError.userCancel.rawValue:
             return
         case LAError.userFallback.rawValue:
             return
         default:
-            message = "Biometric authentication error."
+            // *** NEW STRING ***
+            message = "An error occurred during biometric verification."
         }
         
         displayErrorState(message: message)
@@ -598,11 +618,9 @@ struct PINView: View {
     }
 }
 
-// Вспомогательное расширение для получения символа по индексу (требуется для CodeInputCell)
+// Utility extension to get a character by index
 extension StringProtocol {
     subscript(offset: Int) -> Element {
-        // Ошибка "No exact matches in call to instance method 'index'"
-        // исправлена: index вызывается на self.
         self[self.index(startIndex, offsetBy: offset)]
     }
 }
