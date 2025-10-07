@@ -44,10 +44,11 @@ struct CleanerNextLevelView: View {
             if isTabBarVisible {
                 VStack {
                     Spacer()
-
+                    
                     MainTabBar(selectedTab: $viewModel.currentSelectedTab)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
+                .edgesIgnoringSafeArea(.bottom) // <--- ДОБАВЛЕНО/ИЗМЕНЕНО: Таббар должен игнорировать нижнюю safe area
             }
         }
         .fullScreenCover(isPresented: $isPaywallPresented) {
