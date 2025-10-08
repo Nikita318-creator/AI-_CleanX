@@ -3,73 +3,72 @@ import AVKit
 import AVFoundation
 
 struct VideosView: View {
-    @State private var searchText: String = ""
+    @State private var searchQuery: String = ""
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var safeStorageManager: SafeStorageManager
-    @FocusState private var isSearchFocused: Bool
+    @FocusState private var isSearchActive: Bool
     @State private var selectedVideo: SafeVideoData?
     @State private var showingVideoPicker = false
-    @State private var isSelectionMode = false
-    @State private var selectedVideos: Set<UUID> = []
-    @State private var videoPreviewStates: [UUID: Bool] = [:]
+    @State private var isMultiSelectEnabled = false
+    @State private var selectedItems: Set<UUID> = []
+    @State private var previewCache: [UUID: Bool] = [:]
     
-    // Group videos by date
-    private var groupedVideos: [VideoDateGroup] {
+    // Organize videos by date
+    private var organizedVideos: [VideoCollection] {
         let formatter = DateFormatter()
-        formatter.dateFormat = "d MMM yyyy"
+        formatter.dateFormat = "EEEE, MMM d"
         
-        let groups = Dictionary(grouping: safeStorageManager.loadAllVideos()) { video in
+        let collections = Dictionary(grouping: safeStorageManager.loadAllVideos()) { video in
             formatter.string(from: video.dateAdded)
         }
         
-        return groups.map { key, videos in
-            VideoDateGroup(
-                dateString: key,
-                date: videos.first?.dateAdded ?? Date(),
-                videos: videos.sorted { $0.dateAdded > $1.dateAdded }
+        return collections.map { key, items in
+            VideoCollection(
+                displayDate: key,
+                originalDate: items.first?.dateAdded ?? Date(),
+                items: items.sorted { $0.dateAdded > $1.dateAdded }
             )
-        }.sorted { $0.date > $1.date }
+        }.sorted { $0.originalDate > $1.originalDate }
     }
     
-    private var filteredGroups: [VideoDateGroup] {
-        if searchText.isEmpty {
-            return groupedVideos
+    private var searchResults: [VideoCollection] {
+        if searchQuery.isEmpty {
+            return organizedVideos
         } else {
-            return groupedVideos.compactMap { group in
-                let filteredVideos = group.videos.filter { video in
-                    video.fileName.lowercased().contains(searchText.lowercased())
+            return organizedVideos.compactMap { collection in
+                let matches = collection.items.filter { item in
+                    item.fileName.lowercased().contains(searchQuery.lowercased())
                 }
-                return filteredVideos.isEmpty ? nil : VideoDateGroup(
-                    dateString: group.dateString,
-                    date: group.date,
-                    videos: filteredVideos
+                return matches.isEmpty ? nil : VideoCollection(
+                    displayDate: collection.displayDate,
+                    originalDate: collection.originalDate,
+                    items: matches
                 )
             }
         }
     }
     
     var body: some View {
-        GeometryReader { geometry in
-            let scalingFactor = geometry.size.height / 844
+        GeometryReader { geo in
+            let scale = geo.size.height / 844
             
             VStack(spacing: 0) {
-                // Header
-                headerView(scalingFactor: scalingFactor)
+                // Navigation bar
+                navigationBar(scale: scale)
                 
                 if safeStorageManager.videos.isEmpty {
-                    // Empty state
-                    emptyStateView(scalingFactor: scalingFactor)
+                    // No content state
+                    noContentView(scale: scale)
                 } else {
-                    // Video content
-                    videoContentView(scalingFactor: scalingFactor)
+                    // Main content
+                    mainContent(scale: scale)
                 }
             }
         }
         .background(CMColor.background.ignoresSafeArea())
         .contentShape(Rectangle())
         .onTapGesture {
-            // Dismiss keyboard when tapping outside
-            isSearchFocused = false
+            isSearchActive = false
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
@@ -83,149 +82,160 @@ struct VideosView: View {
         }
     }
     
-    // MARK: - Header
-    private func headerView(scalingFactor: CGFloat) -> some View {
+    // MARK: - Navigation Bar
+    private func navigationBar(scale: CGFloat) -> some View {
         HStack {
             Button(action: {
                 dismiss()
             }) {
-                HStack(spacing: 8 * scalingFactor) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16 * scalingFactor, weight: .medium))
-                        .foregroundColor(CMColor.primary)
+                HStack(spacing: 6 * scale) {
+                    Image(systemName: "arrow.left")
+                        .font(.system(size: 18 * scale, weight: .semibold))
+                        .foregroundColor(CMColor.accent)
                     
-                    Text("Media")
-                        .font(.system(size: 16 * scalingFactor))
-                        .foregroundColor(CMColor.primary)
+                    Text("Library")
+                        .font(.system(size: 17 * scale, weight: .medium))
+                        .foregroundColor(CMColor.accent)
                 }
             }
             
             Spacer()
             
-            Text("Video")
-                .font(.system(size: 22 * scalingFactor, weight: .bold))
+            Text("My Clips")
+                .font(.system(size: 24 * scale, weight: .bold))
                 .foregroundColor(CMColor.primaryText)
             
             Spacer()
             
             Button(action: {
-                if isSelectionMode {
-                    // Exit selection mode
-                    isSelectionMode = false
-                    selectedVideos.removeAll()
+                if isMultiSelectEnabled {
+                    isMultiSelectEnabled = false
+                    selectedItems.removeAll()
                 } else {
-                    // Enter selection mode
-                    isSelectionMode = true
+                    isMultiSelectEnabled = true
                 }
             }) {
-                Text(isSelectionMode ? "Cancel" : "Select")
-                    .font(.system(size: 16 * scalingFactor))
-                    .foregroundColor(CMColor.primary)
+                Text(isMultiSelectEnabled ? "Done" : "Manage")
+                    .font(.system(size: 17 * scale, weight: .medium))
+                    .foregroundColor(CMColor.secondary)
             }
         }
-        .padding(.horizontal, 20 * scalingFactor)
-        .padding(.top, 10 * scalingFactor)
-        .padding(.bottom, 10 * scalingFactor)
+        .padding(.horizontal, 24 * scale)
+        .padding(.top, 12 * scale)
+        .padding(.bottom, 14 * scale)
         .background(CMColor.background)
     }
     
-    // MARK: - Empty State
-    private func emptyStateView(scalingFactor: CGFloat) -> some View {
-        VStack(spacing: 24 * scalingFactor) {
+    // MARK: - No Content View
+    private func noContentView(scale: CGFloat) -> some View {
+        VStack(spacing: 28 * scale) {
             Spacer()
             
-            // Empty state icon
             ZStack {
                 Circle()
-                    .fill(CMColor.backgroundSecondary)
-                    .frame(width: 120 * scalingFactor, height: 120 * scalingFactor)
+                    .fill(CMColor.surface)
+                    .frame(width: 140 * scale, height: 140 * scale)
                 
-                Image(systemName: "video.fill")
-                    .font(.system(size: 48 * scalingFactor))
-                    .foregroundColor(CMColor.secondaryText)
+                Image(systemName: "film.stack")
+                    .font(.system(size: 56 * scale, weight: .light))
+                    .foregroundColor(CMColor.iconSecondary)
             }
             
-            VStack(spacing: 8 * scalingFactor) {
-                Text("No videos yet")
-                    .font(.system(size: 20 * scalingFactor, weight: .semibold))
+            VStack(spacing: 12 * scale) {
+                Text("Your collection is empty")
+                    .font(.system(size: 22 * scale, weight: .bold))
                     .foregroundColor(CMColor.primaryText)
                 
-                Text("Add your first video to get started")
-                    .font(.system(size: 16 * scalingFactor))
+                Text("Start building your video library")
+                    .font(.system(size: 17 * scale))
                     .foregroundColor(CMColor.secondaryText)
                     .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32 * scale)
             }
             
-            // Add video button
             Button(action: {
                 showingVideoPicker = true
             }) {
-                HStack(spacing: 8 * scalingFactor) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 16 * scalingFactor, weight: .medium))
+                HStack(spacing: 10 * scale) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 18 * scale, weight: .semibold))
                     
-                    Text("Add video")
-                        .font(.system(size: 16 * scalingFactor, weight: .semibold))
+                    Text("Import Clip")
+                        .font(.system(size: 18 * scale, weight: .bold))
                 }
                 .foregroundColor(CMColor.white)
                 .frame(maxWidth: .infinity)
-                .frame(height: 50 * scalingFactor)
-                .background(CMColor.primaryGradient)
-                .cornerRadius(25 * scalingFactor)
+                .frame(height: 56 * scale)
+                .background(
+                    LinearGradient(
+                        colors: [CMColor.secondary, CMColor.accent],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .cornerRadius(28 * scale)
+                .shadow(color: CMColor.secondary.opacity(0.4), radius: 12 * scale, y: 6 * scale)
             }
-            .padding(.horizontal, 40 * scalingFactor)
+            .padding(.horizontal, 48 * scale)
+            .padding(.top, 8 * scale)
             
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
-    // MARK: - Video Content
-    private func videoContentView(scalingFactor: CGFloat) -> some View {
+    // MARK: - Main Content
+    private func mainContent(scale: CGFloat) -> some View {
         VStack(spacing: 0) {
-            // Search bar
-            searchBar(scalingFactor: scalingFactor)
-                .padding(.horizontal, 20 * scalingFactor)
-                .padding(.top, 20 * scalingFactor)
+            // Search field
+            searchField(scale: scale)
+                .padding(.horizontal, 24 * scale)
+                .padding(.top, 16 * scale)
             
             ScrollView(.vertical, showsIndicators: false) {
-                LazyVStack(spacing: 24 * scalingFactor) {
-                    ForEach(filteredGroups, id: \.dateString) { group in
-                        videoDateSection(group: group, scalingFactor: scalingFactor)
+                LazyVStack(spacing: 32 * scale) {
+                    ForEach(searchResults, id: \.displayDate) { collection in
+                        collectionSection(collection: collection, scale: scale)
                     }
                     
-                    // Bottom spacing for fixed button
-                    Spacer(minLength: 80 * scalingFactor)
+                    Spacer(minLength: 100 * scale)
                 }
-                .padding(.horizontal, 20 * scalingFactor)
-                .padding(.top, 20 * scalingFactor)
+                .padding(.horizontal, 24 * scale)
+                .padding(.top, 24 * scale)
             }
             
-            // Fixed bottom Add Video Button
-            if !isSearchFocused {
+            // Import button (fixed at bottom)
+            if !isSearchActive {
                 VStack(spacing: 0) {
-                    Divider()
-                        .background(CMColor.border)
+                    Rectangle()
+                        .fill(CMColor.border.opacity(0.5))
+                        .frame(height: 1)
                     
                     Button(action: {
                         showingVideoPicker = true
                     }) {
-                        HStack(spacing: 8 * scalingFactor) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 16 * scalingFactor, weight: .medium))
+                        HStack(spacing: 10 * scale) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 18 * scale, weight: .semibold))
                             
-                            Text("Add video")
-                                .font(.system(size: 16 * scalingFactor, weight: .semibold))
+                            Text("Import Clip")
+                                .font(.system(size: 18 * scale, weight: .bold))
                         }
                         .foregroundColor(CMColor.white)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 50 * scalingFactor)
-                        .background(CMColor.primaryGradient)
-                        .cornerRadius(25 * scalingFactor)
+                        .frame(height: 56 * scale)
+                        .background(
+                            LinearGradient(
+                                colors: [CMColor.secondary, CMColor.accent],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(28 * scale)
+                        .shadow(color: CMColor.secondary.opacity(0.3), radius: 8 * scale, y: 4 * scale)
                     }
-                    .padding(.horizontal, 20 * scalingFactor)
-                    .padding(.top, 16 * scalingFactor)
-                    .padding(.bottom, 16 * scalingFactor)
+                    .padding(.horizontal, 24 * scale)
+                    .padding(.vertical, 20 * scale)
                     .background(CMColor.background)
                 }
                 .transition(.move(edge: .bottom))
@@ -233,156 +243,151 @@ struct VideosView: View {
         }
     }
     
-    // MARK: - Search Bar
-    private func searchBar(scalingFactor: CGFloat) -> some View {
-        HStack(spacing: 12 * scalingFactor) {
-            HStack(spacing: 8 * scalingFactor) {
-                TextField("Search", text: $searchText)
-                    .font(.system(size: 16 * scalingFactor))
+    // MARK: - Search Field
+    private func searchField(scale: CGFloat) -> some View {
+        HStack(spacing: 14 * scale) {
+            HStack(spacing: 10 * scale) {
+                TextField("Find clips...", text: $searchQuery)
+                    .font(.system(size: 17 * scale))
                     .foregroundColor(CMColor.primaryText)
-                    .focused($isSearchFocused)
+                    .focused($isSearchActive)
                     .submitLabel(.search)
                     .onSubmit {
-                        isSearchFocused = false
+                        isSearchActive = false
                     }
                 
                 Spacer()
                 
-                if isSearchFocused && !searchText.isEmpty {
+                if isSearchActive && !searchQuery.isEmpty {
                     Button(action: {
-                        searchText = ""
+                        searchQuery = ""
                     }) {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(CMColor.secondaryText)
-                            .font(.system(size: 16 * scalingFactor))
+                            .foregroundColor(CMColor.tertiaryText)
+                            .font(.system(size: 18 * scale))
                     }
                 } else {
                     Image(systemName: "magnifyingglass")
-                        .foregroundColor(CMColor.secondaryText)
-                        .font(.system(size: 16 * scalingFactor))
+                        .foregroundColor(CMColor.iconSecondary)
+                        .font(.system(size: 18 * scale))
                 }
             }
-            .padding(.horizontal, 16 * scalingFactor)
-            .padding(.vertical, 12 * scalingFactor)
+            .padding(.horizontal, 18 * scale)
+            .padding(.vertical, 14 * scale)
             .background(CMColor.surface)
-            .cornerRadius(12 * scalingFactor)
+            .cornerRadius(16 * scale)
             .overlay(
-                RoundedRectangle(cornerRadius: 12 * scalingFactor)
-                    .stroke(isSearchFocused ? CMColor.primary.opacity(0.3) : CMColor.secondaryText.opacity(0.1), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 16 * scale)
+                    .stroke(isSearchActive ? CMColor.accent.opacity(0.5) : CMColor.border.opacity(0.3), lineWidth: 1.5)
             )
-            .animation(.easeInOut(duration: 0.2), value: isSearchFocused)
+            .animation(.easeInOut(duration: 0.25), value: isSearchActive)
         }
     }
     
-    // MARK: - Video Date Section
-    private func videoDateSection(group: VideoDateGroup, scalingFactor: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: 16 * scalingFactor) {
-            // Date header
-            Text(group.dateString)
-                .font(.system(size: 18 * scalingFactor, weight: .semibold))
+    // MARK: - Collection Section
+    private func collectionSection(collection: VideoCollection, scale: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 18 * scale) {
+            Text(collection.displayDate)
+                .font(.system(size: 19 * scale, weight: .bold))
                 .foregroundColor(CMColor.primaryText)
             
-            // Video grid
             LazyVGrid(columns: [
-                GridItem(.flexible(), spacing: 12 * scalingFactor),
-                GridItem(.flexible(), spacing: 12 * scalingFactor)
-            ], spacing: 12 * scalingFactor) {
-                ForEach(group.videos) { video in
-                    videoThumbnailCard(video: video, scalingFactor: scalingFactor)
+                GridItem(.flexible(), spacing: 16 * scale),
+                GridItem(.flexible(), spacing: 16 * scale)
+            ], spacing: 16 * scale) {
+                ForEach(collection.items) { item in
+                    clipCard(item: item, scale: scale)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     
-    // MARK: - Video Thumbnail Card
-    private func videoThumbnailCard(video: SafeVideoData, scalingFactor: CGFloat) -> some View {
+    // MARK: - Clip Card
+    private func clipCard(item: SafeVideoData, scale: CGFloat) -> some View {
         Button(action: {
-            if isSelectionMode {
-                if selectedVideos.contains(video.id) {
-                    selectedVideos.remove(video.id)
+            if isMultiSelectEnabled {
+                if selectedItems.contains(item.id) {
+                    selectedItems.remove(item.id)
                 } else {
-                    selectedVideos.insert(video.id)
+                    selectedItems.insert(item.id)
                 }
             } else {
-                selectedVideo = video
+                selectedVideo = item
             }
         }) {
             VStack(spacing: 0) {
-                // Video preview
                 ZStack {
-                    // Video preview player
                     VideoPreviewView(
-                        videoURL: video.videoURL,
-                        scalingFactor: scalingFactor,
-                        isPlaying: !isSelectionMode && !isSearchFocused,
-                        videoId: video.id
+                        videoURL: item.videoURL,
+                        scalingFactor: scale,
+                        isPlaying: !isMultiSelectEnabled && !isSearchActive,
+                        videoId: item.id
                     )
-                    .frame(height: 120 * scalingFactor)
+                    .frame(height: 140 * scale)
                     .clipped()
                     .onAppear {
-                        // Initialize preview state
-                        videoPreviewStates[video.id] = true
+                        previewCache[item.id] = true
                     }
                     .onDisappear {
-                        // Clean up preview state
-                        videoPreviewStates[video.id] = false
+                        previewCache[item.id] = false
                     }
                     
-                    // Play button overlay (only in selection mode or when tapped)
-                    if isSelectionMode {
+                    if isMultiSelectEnabled {
                         Rectangle()
-                            .fill(CMColor.black.opacity(0.3))
-                            .frame(height: 120 * scalingFactor)
+                            .fill(CMColor.black.opacity(0.4))
+                            .frame(height: 140 * scale)
                             .overlay(
                                 Circle()
-                                    .fill(CMColor.black.opacity(0.6))
-                                    .frame(width: 40 * scalingFactor, height: 40 * scalingFactor)
+                                    .fill(CMColor.black.opacity(0.7))
+                                    .frame(width: 48 * scale, height: 48 * scale)
                                     .overlay(
                                         Image(systemName: "play.fill")
-                                            .font(.system(size: 16 * scalingFactor))
+                                            .font(.system(size: 20 * scale, weight: .semibold))
                                             .foregroundColor(CMColor.white)
-                                            .offset(x: 2 * scalingFactor) // Slight offset for visual balance
+                                            .offset(x: 2 * scale)
                                     )
                             )
                     }
                     
-                    // Duration overlay
                     VStack {
                         Spacer()
                         HStack {
                             Spacer()
-                            Text(video.durationFormatted)
-                                .font(.system(size: 12 * scalingFactor, weight: .medium))
+                            Text(item.durationFormatted)
+                                .font(.system(size: 13 * scale, weight: .bold))
                                 .foregroundColor(CMColor.white)
-                                .padding(.horizontal, 6 * scalingFactor)
-                                .padding(.vertical, 2 * scalingFactor)
-                                .background(CMColor.black.opacity(0.7))
-                                .cornerRadius(4 * scalingFactor)
-                                .padding(.trailing, 8 * scalingFactor)
-                                .padding(.bottom, 8 * scalingFactor)
+                                .padding(.horizontal, 8 * scale)
+                                .padding(.vertical, 4 * scale)
+                                .background(
+                                    Capsule()
+                                        .fill(CMColor.black.opacity(0.75))
+                                )
+                                .padding(.trailing, 10 * scale)
+                                .padding(.bottom, 10 * scale)
                         }
                     }
                     
-                    // Selection indicator
-                    if isSelectionMode {
+                    if isMultiSelectEnabled {
                         VStack {
                             HStack {
-                                Circle()
-                                    .stroke(CMColor.white, lineWidth: 2)
-                                    .frame(width: 24 * scalingFactor, height: 24 * scalingFactor)
-                                    .background(
-                                        Circle()
-                                            .fill(selectedVideos.contains(video.id) ? CMColor.primary : CMColor.clear)
-                                    )
-                                    .overlay(
+                                ZStack {
+                                    Circle()
+                                        .stroke(CMColor.white, lineWidth: 2.5)
+                                        .frame(width: 28 * scale, height: 28 * scale)
+                                        .background(
+                                            Circle()
+                                                .fill(selectedItems.contains(item.id) ? CMColor.accent : CMColor.clear)
+                                        )
+                                    
+                                    if selectedItems.contains(item.id) {
                                         Image(systemName: "checkmark")
-                                            .font(.system(size: 12 * scalingFactor, weight: .bold))
+                                            .font(.system(size: 14 * scale, weight: .heavy))
                                             .foregroundColor(CMColor.white)
-                                            .opacity(selectedVideos.contains(video.id) ? 1 : 0)
-                                    )
-                                    .padding(.leading, 8 * scalingFactor)
-                                    .padding(.top, 8 * scalingFactor)
+                                    }
+                                }
+                                .padding(.leading, 10 * scale)
+                                .padding(.top, 10 * scale)
                                 
                                 Spacer()
                             }
@@ -391,41 +396,43 @@ struct VideosView: View {
                     }
                 }
                 
-                // Video info
-                VStack(alignment: .leading, spacing: 4 * scalingFactor) {
+                VStack(alignment: .leading, spacing: 6 * scale) {
                     HStack {
-                        Text(video.fileSizeFormatted)
-                            .font(.system(size: 12 * scalingFactor, weight: .medium))
-                            .foregroundColor(CMColor.primaryText)
+                        Text(item.fileSizeFormatted)
+                            .font(.system(size: 13 * scale, weight: .semibold))
+                            .foregroundColor(CMColor.secondaryText)
                         
                         Spacer()
                     }
                 }
-                .padding(.horizontal, 8 * scalingFactor)
-                .padding(.vertical, 8 * scalingFactor)
+                .padding(.horizontal, 12 * scale)
+                .padding(.vertical, 10 * scale)
                 .background(CMColor.surface)
             }
         }
-        .cornerRadius(12 * scalingFactor)
+        .cornerRadius(14 * scale)
         .overlay(
-            RoundedRectangle(cornerRadius: 12 * scalingFactor)
-                .stroke(isSelectionMode && selectedVideos.contains(video.id) ? CMColor.primary : CMColor.secondaryText.opacity(0.1), lineWidth: isSelectionMode && selectedVideos.contains(video.id) ? 2 : 1)
+            RoundedRectangle(cornerRadius: 14 * scale)
+                .stroke(
+                    isMultiSelectEnabled && selectedItems.contains(item.id) ? CMColor.accent : CMColor.border.opacity(0.2),
+                    lineWidth: isMultiSelectEnabled && selectedItems.contains(item.id) ? 2.5 : 1
+                )
         )
-        .shadow(color: CMColor.black.opacity(0.05), radius: 4 * scalingFactor, x: 0, y: 2 * scalingFactor)
-        .scaleEffect(isSelectionMode && selectedVideos.contains(video.id) ? 0.95 : 1.0)
-        .animation(.easeInOut(duration: 0.2), value: selectedVideos.contains(video.id))
+        .shadow(color: CMColor.black.opacity(0.08), radius: 8 * scale, x: 0, y: 4 * scale)
+        .scaleEffect(isMultiSelectEnabled && selectedItems.contains(item.id) ? 0.96 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedItems.contains(item.id))
     }
 }
 
-// MARK: - Supporting Data Models
-struct VideoDateGroup: Identifiable {
+// MARK: - Data Models
+struct VideoCollection: Identifiable {
     let id = UUID()
-    let dateString: String
-    let date: Date
-    let videos: [SafeVideoData]
+    let displayDate: String
+    let originalDate: Date
+    let items: [SafeVideoData]
 }
 
-// MARK: - Video Picker (Placeholder)
+// MARK: - Video Picker
 struct VideoPickerView: UIViewControllerRepresentable {
     let onVideoSelected: (Data, String, Double) -> Void
     @Environment(\.dismiss) private var dismiss
@@ -458,7 +465,6 @@ struct VideoPickerView: UIViewControllerRepresentable {
                     let data = try Data(contentsOf: url)
                     let fileName = url.lastPathComponent
                     
-                    // Get video duration
                     let asset = AVAsset(url: url)
                     let duration = asset.duration.seconds
                     
@@ -476,7 +482,7 @@ struct VideoPickerView: UIViewControllerRepresentable {
     }
 }
 
-// MARK: - Video Preview View
+// MARK: - Video Preview
 struct VideoPreviewView: UIViewRepresentable {
     let videoURL: URL
     let scalingFactor: CGFloat
@@ -485,23 +491,20 @@ struct VideoPreviewView: UIViewRepresentable {
     
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
-        view.backgroundColor = UIColor.systemGray5
+        view.backgroundColor = UIColor.systemGray6
         
         let player = AVPlayer(url: videoURL)
         let playerLayer = AVPlayerLayer(player: player)
         
-        // Configure player for preview performance
-        player.isMuted = true // Mute for better performance in grid
+        player.isMuted = true
         player.automaticallyWaitsToMinimizeStalling = true
         
         playerLayer.videoGravity = .resizeAspectFill
         view.layer.addSublayer(playerLayer)
         
-        // Store player in context for control
         context.coordinator.player = player
         context.coordinator.playerLayer = playerLayer
         
-        // Set up looping with delay to prevent excessive CPU usage
         NotificationCenter.default.addObserver(
             context.coordinator,
             selector: #selector(Coordinator.playerDidFinishPlaying),
@@ -517,10 +520,8 @@ struct VideoPreviewView: UIViewRepresentable {
             playerLayer.frame = uiView.bounds
         }
         
-        // Control playback based on isPlaying state
         if isPlaying {
-            // Add small delay before starting to prevent too many simultaneous players
-            DispatchQueue.main.asyncAfter(deadline: .now() + Double.random(in: 0.1...0.3)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double.random(in: 0.15...0.35)) {
                 context.coordinator.player?.play()
             }
         } else {
@@ -537,8 +538,7 @@ struct VideoPreviewView: UIViewRepresentable {
         var playerLayer: AVPlayerLayer?
         
         @objc func playerDidFinishPlaying() {
-            // Loop the video with a small delay to reduce performance impact
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
                 self?.player?.seek(to: .zero)
                 if self?.player?.timeControlStatus != .playing {
                     self?.player?.play()
@@ -554,7 +554,7 @@ struct VideoPreviewView: UIViewRepresentable {
     }
 }
 
-// MARK: - Video Player View
+// MARK: - Video Player
 struct VideoPlayerView: View {
     let video: SafeVideoData
     @Environment(\.dismiss) private var dismiss
@@ -566,7 +566,7 @@ struct VideoPlayerView: View {
                 .navigationBarBackButtonHidden(true)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Done") {
+                        Button("Close") {
                             dismiss()
                         }
                     }
@@ -578,10 +578,4 @@ struct VideoPlayerView: View {
                 }
         }
     }
-}
-
-// MARK: - Preview
-#Preview {
-    VideosView()
-        .environmentObject(SafeStorageManager())
 }

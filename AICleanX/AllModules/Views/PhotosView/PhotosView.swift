@@ -32,115 +32,141 @@ struct PhotosView: View {
                 }
             }
         }
-        .background(CMColor.background.ignoresSafeArea())
+        .background(Color(red: 0.97, green: 0.97, blue: 0.98).ignoresSafeArea())
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .contentShape(Rectangle())
         .onTapGesture {
-            // Dismiss keyboard when tapping outside
             isSearchFieldFocused = false
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
         .onChange(of: itemsToImport) { newItems in
             startImageImportProcess(from: newItems)
         }
-        .confirmationDialog("Delete Photos", isPresented: $isShowingDeleteDialog) {
-            Button("Delete \(currentSelectionIDs.count) Photos", role: .destructive) {
+        .confirmationDialog("Remove Images", isPresented: $isShowingDeleteDialog) {
+            Button("Remove \(currentSelectionIDs.count) Items", role: .destructive) {
                 executeDeletion()
             }
-            Button("Cancel", role: .cancel) { }
+            Button("Keep Them", role: .cancel) { }
         } message: {
-            Text("Are you sure you want to delete \(currentSelectionIDs.count) selected photos? This action cannot be undone.")
+            Text("You're about to remove \(currentSelectionIDs.count) images from your gallery. This can't be reversed.")
         }
     }
     
     // MARK: - Navigation Bar
     private func buildNavigationView(scaleRatio: CGFloat) -> some View {
-        HStack {
-            Button(action: {
-                flowDismissal()
-            }) {
-                HStack(spacing: 4 * scaleRatio) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16 * scaleRatio, weight: .medium))
-                    Text("Media")
-                        .font(.system(size: 16 * scaleRatio))
+        ZStack {
+            HStack {
+                Button(action: {
+                    flowDismissal()
+                }) {
+                    HStack(spacing: 6 * scaleRatio) {
+                        Image(systemName: "arrow.left")
+                            .font(.system(size: 15 * scaleRatio, weight: .semibold))
+                        Text("Gallery")
+                            .font(.system(size: 15 * scaleRatio, weight: .medium))
+                    }
+                    .foregroundColor(Color(red: 0.2, green: 0.47, blue: 0.95))
                 }
-                .foregroundColor(CMColor.primary)
+                
+                Spacer()
             }
             
-            Spacer()
+            HStack {
+                Spacer()
+                Text("Image Library")
+                    .font(.system(size: 18 * scaleRatio, weight: .bold))
+                    .foregroundColor(Color(red: 0.11, green: 0.11, blue: 0.12))
+                Spacer()
+            }
             
-            Text("Photos")
-                .font(.system(size: 17 * scaleRatio, weight: .semibold))
-                .foregroundColor(CMColor.primaryText)
-            
-            Spacer()
-            
-            if !fetchedMediaData.isEmpty {
-                Button(action: {
-                    isSelectionActive.toggle()
-                    if !isSelectionActive {
-                        currentSelectionIDs.removeAll()
-                    }
-                }) {
-                    HStack(spacing: 4 * scaleRatio) {
-                        Circle()
-                            .fill(CMColor.primary)
-                            .frame(width: 6 * scaleRatio, height: 6 * scaleRatio)
-                        Text(isSelectionActive ? "Cancel" : "Select")
-                            .font(.system(size: 16 * scaleRatio))
-                            .foregroundColor(CMColor.primary)
+            HStack {
+                Spacer()
+                
+                if !fetchedMediaData.isEmpty {
+                    Button(action: {
+                        isSelectionActive.toggle()
+                        if !isSelectionActive {
+                            currentSelectionIDs.removeAll()
+                        }
+                    }) {
+                        Text(isSelectionActive ? "Done" : "Edit")
+                            .font(.system(size: 15 * scaleRatio, weight: .semibold))
+                            .foregroundColor(Color(red: 0.2, green: 0.47, blue: 0.95))
+                            .padding(.horizontal, 14 * scaleRatio)
+                            .padding(.vertical, 7 * scaleRatio)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8 * scaleRatio)
+                                    .fill(Color(red: 0.2, green: 0.47, blue: 0.95).opacity(0.1))
+                            )
                     }
                 }
-            } else {
-                Spacer().frame(width: 60 * scaleRatio)
             }
         }
-        .padding(.horizontal, 16 * scaleRatio)
-        .padding(.vertical, 12 * scaleRatio)
+        .padding(.horizontal, 18 * scaleRatio)
+        .padding(.vertical, 14 * scaleRatio)
+        .background(Color.white)
+        .shadow(color: Color.black.opacity(0.04), radius: 2, y: 1)
     }
     
     // MARK: - Empty State
     private func buildEmptyStateView(scaleRatio: CGFloat) -> some View {
-        VStack(spacing: 24 * scaleRatio) {
+        VStack(spacing: 28 * scaleRatio) {
             Spacer()
             
             ZStack {
-                Circle()
-                    .fill(CMColor.backgroundSecondary)
-                    .frame(width: 120 * scaleRatio, height: 120 * scaleRatio)
+                RoundedRectangle(cornerRadius: 32 * scaleRatio)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.4, green: 0.6, blue: 1.0).opacity(0.15),
+                                Color(red: 0.6, green: 0.4, blue: 1.0).opacity(0.15)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 140 * scaleRatio, height: 140 * scaleRatio)
                 
-                Image(systemName: "photo.fill")
-                    .font(.system(size: 48 * scaleRatio))
-                    .foregroundColor(CMColor.secondaryText)
+                Image(systemName: "photo.stack")
+                    .font(.system(size: 52 * scaleRatio, weight: .light))
+                    .foregroundColor(Color(red: 0.3, green: 0.5, blue: 0.9))
             }
             
-            VStack(spacing: 8 * scaleRatio) {
-                Text("No photos yet")
-                    .font(.system(size: 20 * scaleRatio, weight: .semibold))
-                    .foregroundColor(CMColor.primaryText)
+            VStack(spacing: 10 * scaleRatio) {
+                Text("Your gallery is empty")
+                    .font(.system(size: 22 * scaleRatio, weight: .bold))
+                    .foregroundColor(Color(red: 0.11, green: 0.11, blue: 0.12))
                 
-                Text("Add your first photo to get started")
-                    .font(.system(size: 16 * scaleRatio))
-                    .foregroundColor(CMColor.secondaryText)
+                Text("Start building your collection by importing your first image")
+                    .font(.system(size: 15 * scaleRatio))
+                    .foregroundColor(Color(red: 0.46, green: 0.47, blue: 0.49))
                     .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20 * scaleRatio)
             }
             
             PhotosPicker(selection: $itemsToImport, maxSelectionCount: 10, matching: .images) {
-                HStack(spacing: 8 * scaleRatio) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 16 * scaleRatio, weight: .medium))
+                HStack(spacing: 10 * scaleRatio) {
+                    Image(systemName: "square.and.arrow.down")
+                        .font(.system(size: 15 * scaleRatio, weight: .semibold))
                     
-                    Text("Add photo")
+                    Text("Import Images")
                         .font(.system(size: 16 * scaleRatio, weight: .semibold))
                 }
-                .foregroundColor(CMColor.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 50 * scaleRatio)
-                .background(CMColor.primaryGradient)
-                .cornerRadius(25 * scaleRatio)
+                .foregroundColor(.white)
+                .frame(width: 220 * scaleRatio, height: 54 * scaleRatio)
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.2, green: 0.47, blue: 0.95),
+                            Color(red: 0.15, green: 0.38, blue: 0.85)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .cornerRadius(27 * scaleRatio)
+                .shadow(color: Color(red: 0.2, green: 0.47, blue: 0.95).opacity(0.3), radius: 8, y: 4)
             }
-            .padding(.horizontal, 40 * scaleRatio)
             
             Spacer()
         }
@@ -149,12 +175,10 @@ struct PhotosView: View {
     
     private func buildContentDisplay(scaleRatio: CGFloat) -> some View {
         ScrollView(.vertical, showsIndicators: false) {
-            LazyVStack(spacing: 24 * scaleRatio) {
-                // В оригинале здесь был searchBar, оставляем его, но убираем фильтрацию
+            LazyVStack(spacing: 20 * scaleRatio) {
                 createSearchInput(scaleRatio: scaleRatio)
                 
                 if !isSearchFieldFocused || !inputSearchText.isEmpty {
-                    // Используем исходную логику (без фильтрации, как в оригинале)
                     generatePhotoSections(scaleRatio: scaleRatio)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                     
@@ -162,52 +186,54 @@ struct PhotosView: View {
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
                 
-                Spacer(minLength: isSearchFieldFocused ? 200 * scaleRatio : 100 * scaleRatio)
+                Spacer(minLength: isSearchFieldFocused ? 180 * scaleRatio : 80 * scaleRatio)
             }
-            .padding(.horizontal, 16 * scaleRatio)
-            .padding(.top, 20 * scaleRatio)
+            .padding(.horizontal, 18 * scaleRatio)
+            .padding(.top, 16 * scaleRatio)
             .animation(.easeInOut(duration: 0.3), value: isSearchFieldFocused)
         }
     }
     
     private func createSearchInput(scaleRatio: CGFloat) -> some View {
-        HStack(spacing: 12 * scaleRatio) {
-            HStack(spacing: 8 * scaleRatio) {
-                TextField("Search", text: $inputSearchText)
-                    .font(.system(size: 16 * scaleRatio))
-                    .foregroundColor(CMColor.primaryText)
-                    .focused($isSearchFieldFocused)
-                    .submitLabel(.search)
-                    .onSubmit {
-                        isSearchFieldFocused = false
-                    }
-                
-                Spacer()
-                
-                if isSearchFieldFocused && !inputSearchText.isEmpty {
-                    Button(action: {
-                        inputSearchText = ""
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(CMColor.secondaryText)
-                            .font(.system(size: 16 * scaleRatio))
-                    }
-                } else {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(CMColor.secondaryText)
-                        .font(.system(size: 16 * scaleRatio))
+        HStack(spacing: 10 * scaleRatio) {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(Color(red: 0.58, green: 0.59, blue: 0.61))
+                .font(.system(size: 15 * scaleRatio))
+            
+            TextField("Find in library", text: $inputSearchText)
+                .font(.system(size: 15 * scaleRatio))
+                .foregroundColor(Color(red: 0.11, green: 0.11, blue: 0.12))
+                .focused($isSearchFieldFocused)
+                .submitLabel(.search)
+                .onSubmit {
+                    isSearchFieldFocused = false
+                }
+            
+            if isSearchFieldFocused && !inputSearchText.isEmpty {
+                Button(action: {
+                    inputSearchText = ""
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(Color(red: 0.58, green: 0.59, blue: 0.61))
+                        .font(.system(size: 15 * scaleRatio))
                 }
             }
-            .padding(.horizontal, 16 * scaleRatio)
-            .padding(.vertical, 12 * scaleRatio)
-            .background(CMColor.surface)
-            .cornerRadius(12 * scaleRatio)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12 * scaleRatio)
-                    .stroke(isSearchFieldFocused ? CMColor.primary.opacity(0.3) : CMColor.border, lineWidth: 1)
-            )
-            .animation(.easeInOut(duration: 0.2), value: isSearchFieldFocused)
         }
+        .padding(.horizontal, 14 * scaleRatio)
+        .padding(.vertical, 11 * scaleRatio)
+        .background(Color.white)
+        .cornerRadius(10 * scaleRatio)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10 * scaleRatio)
+                .stroke(
+                    isSearchFieldFocused ?
+                    Color(red: 0.2, green: 0.47, blue: 0.95).opacity(0.4) :
+                    Color(red: 0.89, green: 0.89, blue: 0.91),
+                    lineWidth: 1.5
+                )
+        )
+        .shadow(color: isSearchFieldFocused ? Color(red: 0.2, green: 0.47, blue: 0.95).opacity(0.1) : Color.clear, radius: 4)
+        .animation(.easeInOut(duration: 0.2), value: isSearchFieldFocused)
     }
     
     private func generatePhotoSections(scaleRatio: CGFloat) -> some View {
@@ -215,18 +241,24 @@ struct PhotosView: View {
             formatPhotoTimestamp(photo.dateAdded)
         }
         
-        return LazyVStack(alignment: .leading, spacing: 16 * scaleRatio) {
+        return LazyVStack(alignment: .leading, spacing: 20 * scaleRatio) {
             ForEach(groupedPhotos.keys.sorted(by: { first, second in
                 if first == "Today" { return true }
                 if second == "Today" { return false }
                 return first < second
             }), id: \.self) { dateKey in
-                VStack(alignment: .leading, spacing: 12 * scaleRatio) {
-                    Text(dateKey)
-                        .font(.system(size: 18 * scaleRatio, weight: .semibold))
-                        .foregroundColor(CMColor.primaryText)
+                VStack(alignment: .leading, spacing: 14 * scaleRatio) {
+                    HStack {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color(red: 0.2, green: 0.47, blue: 0.95))
+                            .frame(width: 3 * scaleRatio, height: 18 * scaleRatio)
+                        
+                        Text(dateKey)
+                            .font(.system(size: 17 * scaleRatio, weight: .bold))
+                            .foregroundColor(Color(red: 0.11, green: 0.11, blue: 0.12))
+                    }
                     
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8 * scaleRatio), count: 3), spacing: 8 * scaleRatio) {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10 * scaleRatio), count: 3), spacing: 10 * scaleRatio) {
                         ForEach(groupedPhotos[dateKey] ?? []) { photo in
                             createPhotoCell(photo: photo, scaleRatio: scaleRatio)
                         }
@@ -237,57 +269,59 @@ struct PhotosView: View {
     }
     
     private func createPhotoCell(photo: SafePhotoData, scaleRatio: CGFloat) -> some View {
-        let cellDimension = (UIScreen.main.bounds.width - 48 * scaleRatio) / 3
+        let cellDimension = (UIScreen.main.bounds.width - 56 * scaleRatio) / 3
 
         return NavigationLink(destination: PhotoDetailView(photo: photo)) {
             ZStack {
-                // Photo Content
                 if let uiImage = photo.fullImage {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: cellDimension, height: cellDimension)
                         .clipped()
-                        .cornerRadius(12 * scaleRatio)
+                        .cornerRadius(10 * scaleRatio)
                 } else {
-                    Rectangle()
-                        .fill(CMColor.secondaryText.opacity(0.3))
+                    RoundedRectangle(cornerRadius: 10 * scaleRatio)
+                        .fill(Color(red: 0.94, green: 0.94, blue: 0.96))
                         .frame(width: cellDimension, height: cellDimension)
-                        .cornerRadius(12 * scaleRatio)
                         .overlay(
-                            Image(systemName: "photo")
-                                .font(.system(size: 24 * scaleRatio))
-                                .foregroundColor(CMColor.secondaryText)
+                            Image(systemName: "photo.fill")
+                                .font(.system(size: 26 * scaleRatio))
+                                .foregroundColor(Color(red: 0.78, green: 0.78, blue: 0.8))
                         )
                 }
                 
-                // Selection Overlay (Кнопка выделения)
                 if isSelectionActive {
                     VStack {
                         HStack {
                             Spacer()
-                            // ВАЖНО: Мы используем Button, чтобы перехватить тап
                             Button(action: {
-                                // Логика выделения
                                 if currentSelectionIDs.contains(photo.id) {
                                     currentSelectionIDs.remove(photo.id)
                                 } else {
                                     currentSelectionIDs.insert(photo.id)
                                 }
                             }) {
-                                Image(systemName: currentSelectionIDs.contains(photo.id) ? "checkmark.circle.fill" : "circle")
-                                    .font(.system(size: 20 * scaleRatio))
-                                    .foregroundColor(currentSelectionIDs.contains(photo.id) ? .white : .white.opacity(0.7))
-                                    .background(
-                                        Circle()
-                                            .fill(currentSelectionIDs.contains(photo.id) ? CMColor.primary : Color.black.opacity(0.3))
-                                            .frame(width: 24 * scaleRatio, height: 24 * scaleRatio)
-                                    )
+                                ZStack {
+                                    Circle()
+                                        .fill(
+                                            currentSelectionIDs.contains(photo.id) ?
+                                            Color(red: 0.2, green: 0.47, blue: 0.95) :
+                                            Color.white.opacity(0.9)
+                                        )
+                                        .frame(width: 26 * scaleRatio, height: 26 * scaleRatio)
+                                        .shadow(color: Color.black.opacity(0.15), radius: 2)
+                                    
+                                    if currentSelectionIDs.contains(photo.id) {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 12 * scaleRatio, weight: .bold))
+                                            .foregroundColor(.white)
+                                    }
+                                }
                             }
-                            // Модификатор, который не позволит NavigationLink сработать от тапа по кнопке
                             .buttonStyle(PlainButtonStyle())
                             .contentShape(Circle())
-                            .padding(8 * scaleRatio)
+                            .padding(6 * scaleRatio)
                         }
                         Spacer()
                     }
@@ -299,28 +333,43 @@ struct PhotosView: View {
     private func generateActionButtons(scaleRatio: CGFloat) -> some View {
         VStack(spacing: 12 * scaleRatio) {
             if isProcessingImages {
-                HStack(spacing: 8 * scaleRatio) {
+                HStack(spacing: 10 * scaleRatio) {
                     ProgressView()
-                        .scaleEffect(0.8)
+                        .scaleEffect(0.85)
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     
-                    Text("Adding images...")
-                        .font(.system(size: 16 * scaleRatio, weight: .medium))
+                    Text("Processing...")
+                        .font(.system(size: 15 * scaleRatio, weight: .semibold))
                         .foregroundColor(.white)
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 52 * scaleRatio)
-                .background(CMColor.primary.opacity(0.7))
-                .cornerRadius(16 * scaleRatio)
+                .frame(height: 54 * scaleRatio)
+                .background(Color(red: 0.2, green: 0.47, blue: 0.95).opacity(0.6))
+                .cornerRadius(12 * scaleRatio)
             } else {
                 PhotosPicker(selection: $itemsToImport, maxSelectionCount: 10, matching: .images) {
-                    Text("Add image")
-                        .font(.system(size: 16 * scaleRatio, weight: .medium))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52 * scaleRatio)
-                        .background(CMColor.primary)
-                        .cornerRadius(16 * scaleRatio)
+                    HStack(spacing: 8 * scaleRatio) {
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.system(size: 15 * scaleRatio, weight: .semibold))
+                        
+                        Text("Import More")
+                            .font(.system(size: 15 * scaleRatio, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54 * scaleRatio)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.2, green: 0.47, blue: 0.95),
+                                Color(red: 0.15, green: 0.38, blue: 0.85)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(12 * scaleRatio)
+                    .shadow(color: Color(red: 0.2, green: 0.47, blue: 0.95).opacity(0.25), radius: 6, y: 3)
                 }
                 .disabled(isProcessingImages)
             }
@@ -330,22 +379,32 @@ struct PhotosView: View {
                     isShowingDeleteDialog = true
                 }) {
                     HStack(spacing: 8 * scaleRatio) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 16 * scaleRatio, weight: .medium))
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 15 * scaleRatio, weight: .semibold))
                         
-                        Text("Delete Selected (\(currentSelectionIDs.count))")
-                            .font(.system(size: 16 * scaleRatio, weight: .medium))
+                        Text("Remove (\(currentSelectionIDs.count))")
+                            .font(.system(size: 15 * scaleRatio, weight: .semibold))
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 52 * scaleRatio)
-                    .background(Color.red)
-                    .cornerRadius(16 * scaleRatio)
+                    .frame(height: 54 * scaleRatio)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.95, green: 0.27, blue: 0.29),
+                                Color(red: 0.85, green: 0.2, blue: 0.22)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(12 * scaleRatio)
+                    .shadow(color: Color(red: 0.95, green: 0.27, blue: 0.29).opacity(0.25), radius: 6, y: 3)
                 }
                 .disabled(isProcessingImages)
             }
         }
-        .padding(.top, 20 * scaleRatio)
+        .padding(.top, 16 * scaleRatio)
         .animation(.easeInOut(duration: 0.2), value: isProcessingImages)
     }
         

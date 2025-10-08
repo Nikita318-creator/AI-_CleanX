@@ -172,13 +172,13 @@ struct SafeStorageView: View {
                     headerView()
                     
                     // Search bar
-                    searchBar()
+//                    searchBar()
                     
                     // Category cards
                     categoryCardsView() // ИЗМЕНЕННЫЙ ВЫЗОВ
                     
                     // Last added section
-                    lastAddedSection()
+//                    lastAddedSection()
                     
                     // Dynamic bottom spacing based on search state
                     Spacer()
@@ -208,7 +208,7 @@ struct SafeStorageView: View {
             AICleanerSafeContactsView()
         }
         .fullScreenCover(isPresented: $showDocumentsView) {
-            DocListView()
+            RefactoredDocListView()
                 .environmentObject(safeStorageManager)
         }
         // НОВЫЙ fullScreenCover для смены пароля
@@ -231,7 +231,7 @@ struct SafeStorageView: View {
     
     private func headerView() -> some View {
         HStack {
-            Text("Safe Storage")
+            Text("Secret Vault")
                 .font(.largeTitle.bold())
                 .foregroundColor(CMColor.primaryText)
             
@@ -254,35 +254,34 @@ struct SafeStorageView: View {
         }
     }
     
-    private func searchBar() -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "magnifyingglass")
-                .foregroundColor(CMColor.iconSecondary)
-                
-            TextField("Search your files...", text: $searchText)
-                .foregroundColor(CMColor.primaryText)
-                .accentColor(CMColor.accent)
-                .font(.body)
-                .focused($isSearchFocused)
-                
-            if isSearchFocused && !searchText.isEmpty {
-                Button(action: {
-                    searchText = ""
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(CMColor.iconSecondary)
-                }
-            }
-        }
-        .padding(12)
-        .background(CMColor.surface)
-        .cornerRadius(12)
-        .shadow(color: CMColor.black.opacity(0.05), radius: 5, x: 0, y: 5)
-    }
-    
-    // ИЗМЕНЕННЫЙ categoryCardsView
+//    private func searchBar() -> some View {
+//        HStack(spacing: 12) {
+//            Image(systemName: "magnifyingglass")
+//                .foregroundColor(CMColor.iconSecondary)
+//                
+//            TextField("Search your files...", text: $searchText)
+//                .foregroundColor(CMColor.primaryText)
+//                .accentColor(CMColor.accent)
+//                .font(.body)
+//                .focused($isSearchFocused)
+//                
+//            if isSearchFocused && !searchText.isEmpty {
+//                Button(action: {
+//                    searchText = ""
+//                }) {
+//                    Image(systemName: "xmark.circle.fill")
+//                        .foregroundColor(CMColor.iconSecondary)
+//                }
+//            }
+//        }
+//        .padding(12)
+//        .background(CMColor.surface)
+//        .cornerRadius(12)
+//        .shadow(color: CMColor.black.opacity(0.05), radius: 5, x: 0, y: 5)
+//    }
+//    
+
     private func categoryCardsView() -> some View {
-        // Используем LazyVGrid для двух колонок с вертикальными карточками
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
             ForEach(categories) { category in
                 Button(action: {
@@ -304,39 +303,39 @@ struct SafeStorageView: View {
         }
     }
     
-    private func lastAddedSection() -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Recently Added")
-                    .font(.title2.bold())
-                    .foregroundColor(CMColor.primaryText)
-                Spacer()
-            }
-                
-            if recentFiles.isEmpty {
-                Text("No recent files")
-                    .foregroundColor(CMColor.secondaryText)
-                    .padding(.vertical, 30)
-                    .frame(maxWidth: .infinity)
-                    .background(CMColor.surface)
-                    .cornerRadius(16)
-                    .shadow(color: CMColor.black.opacity(0.05), radius: 5, x: 0, y: 5)
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(Array(recentFiles.enumerated()), id: \.offset) { index, file in
-                        fileRow(file: file)
-                            
-                        if index < recentFiles.count - 1 {
-                            Divider()
-                        }
-                    }
-                }
-                .background(CMColor.surface)
-                .cornerRadius(16)
-                .shadow(color: CMColor.black.opacity(0.05), radius: 5, x: 0, y: 5)
-            }
-        }
-    }
+//    private func lastAddedSection() -> some View {
+//        VStack(alignment: .leading, spacing: 16) {
+//            HStack {
+//                Text("Recently Added")
+//                    .font(.title2.bold())
+//                    .foregroundColor(CMColor.primaryText)
+//                Spacer()
+//            }
+//                
+//            if recentFiles.isEmpty {
+//                Text("No recent files")
+//                    .foregroundColor(CMColor.secondaryText)
+//                    .padding(.vertical, 30)
+//                    .frame(maxWidth: .infinity)
+//                    .background(CMColor.surface)
+//                    .cornerRadius(16)
+//                    .shadow(color: CMColor.black.opacity(0.05), radius: 5, x: 0, y: 5)
+//            } else {
+//                VStack(spacing: 0) {
+//                    ForEach(Array(recentFiles.enumerated()), id: \.offset) { index, file in
+//                        fileRow(file: file)
+//                            
+//                        if index < recentFiles.count - 1 {
+//                            Divider()
+//                        }
+//                    }
+//                }
+//                .background(CMColor.surface)
+//                .cornerRadius(16)
+//                .shadow(color: CMColor.black.opacity(0.05), radius: 5, x: 0, y: 5)
+//            }
+//        }
+//    }
     
     private func fileRow(file: SafeStorageFile) -> some View {
         HStack(spacing: 16) {

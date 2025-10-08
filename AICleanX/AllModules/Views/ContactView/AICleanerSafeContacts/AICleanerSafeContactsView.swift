@@ -41,12 +41,20 @@ struct AICleanerSafeContactsView: View {
                         // Search Bar
                         searchBarView(scalingFactor: scalingFactor)
                         
+                        // Stats Card
+                        if !viewModel.contacts.isEmpty {
+                            statsCard(scalingFactor: scalingFactor)
+                        }
+                        
                         // Contacts List
                         contactsListView(scalingFactor: scalingFactor)
                     }
-                    
-                    // Add Contact Button
-                    addContactButton(scalingFactor: scalingFactor)
+                }
+                
+                // Floating Action Buttons
+                VStack {
+                    Spacer()
+                    floatingActionButtons(scalingFactor: scalingFactor)
                 }
             }
         }
@@ -57,41 +65,39 @@ struct AICleanerSafeContactsView: View {
         .fullScreenCover(isPresented: $showEditContact) {
             AddContactView(viewModel: AnyContactViewModel(viewModel), contactToEdit: selectedContactForEdit)
         }
-
         .sheet(isPresented: $showContactPicker) {
             AICleanerContactPickerView(isPresented: $showContactPicker) { contacts in
                 contactsToImport = contacts
                 showDeleteFromDeviceAlert = true
             }
         }
-
-        .alert("Import Successful", isPresented: $showImportSuccess) {
-            Button("OK", role: .cancel) { }
+        .alert("Contacts Secured", isPresented: $showImportSuccess) {
+            Button("Got it", role: .cancel) { }
         } message: {
-            Text("Successfully imported \(importedCount) contact\(importedCount == 1 ? "" : "s") to Safe Storage.")
+            Text("\(importedCount) contact\(importedCount == 1 ? "" : "s") transferred to secure vault.")
         }
         .sheet(isPresented: $showSystemContactCard) {
             if let contact = selectedContactForSystemCard {
                 AICleanerSafeContactCardView(contact: contact)
             }
         }
-        .alert("Delete from Device", isPresented: $showDeleteFromDeviceAlert) {
-            Button("Yes", role: .destructive) {
+        .alert("Remove from Device?", isPresented: $showDeleteFromDeviceAlert) {
+            Button("Remove & Secure", role: .destructive) {
                 handleImportAndDeleteFromDevice()
             }
-            Button("No", role: .cancel) {
+            Button("Keep Both", role: .cancel) {
                 handleImportOnly()
             }
         } message: {
-            Text("Do you want to delete contacts from your device?")
+            Text("Would you like to remove these contacts from your device after securing them?")
         }
-        .confirmationDialog("Contact Actions", isPresented: $showContextMenu) {
+        .confirmationDialog("Quick Actions", isPresented: $showContextMenu) {
             if let contact = selectedContactForContext {
-                Button("Call") {
+                Button("Call Contact") {
                     makePhoneCall(to: contact.phoneNumber)
                 }
                 
-                Button("Delete", role: .destructive) {
+                Button("Remove from Vault", role: .destructive) {
                     showDeleteFromSafeStorageAlert = true
                 }
                 
@@ -101,11 +107,11 @@ struct AICleanerSafeContactsView: View {
             }
         } message: {
             if let contact = selectedContactForContext {
-                Text("Actions for \(contact.fullName)")
+                Text("\(contact.fullName)")
             }
         }
-        .alert("Delete Contact", isPresented: $showDeleteFromSafeStorageAlert) {
-            Button("Delete", role: .destructive) {
+        .alert("Remove Contact?", isPresented: $showDeleteFromSafeStorageAlert) {
+            Button("Remove", role: .destructive) {
                 if let contact = selectedContactForContext {
                     viewModel.deleteContact(contact)
                     selectedContactForContext = nil
@@ -116,7 +122,7 @@ struct AICleanerSafeContactsView: View {
             }
         } message: {
             if let contact = selectedContactForContext {
-                Text("Are you sure you want to delete \(contact.fullName) from Safe Storage?")
+                Text("This will permanently remove \(contact.fullName) from your secure vault.")
             }
         }
         .onAppear {
@@ -127,85 +133,153 @@ struct AICleanerSafeContactsView: View {
     
     // MARK: - Header View
     private func headerView(scalingFactor: CGFloat) -> some View {
-        HStack {
-            Button(action: {
-                dismiss()
-            }) {
-                HStack(spacing: 6 * scalingFactor) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16 * scalingFactor, weight: .medium))
-                        .foregroundColor(CMColor.primary)
-                    
-                    Text("Back")
-                        .font(.system(size: 17 * scalingFactor, weight: .regular))
-                        .foregroundColor(CMColor.primary)
+        VStack(spacing: 0) {
+            HStack(alignment: .center) {
+                Button(action: {
+                    dismiss()
+                }) {
+                    HStack(spacing: 4 * scalingFactor) {
+                        Image(systemName: "arrow.left")
+                            .font(.system(size: 18 * scalingFactor, weight: .semibold))
+                            .foregroundColor(CMColor.accent)
+                    }
+                    .frame(width: 44 * scalingFactor, height: 44 * scalingFactor)
                 }
+                
+                Spacer()
+                
+                VStack(spacing: 2 * scalingFactor) {
+                    Text("Protected Vault")
+                        .font(.system(size: 18 * scalingFactor, weight: .bold))
+                        .foregroundColor(CMColor.primaryText)
+                    
+                    HStack(spacing: 4 * scalingFactor) {
+                        Image(systemName: "lock.shield.fill")
+                            .font(.system(size: 10 * scalingFactor))
+                            .foregroundColor(CMColor.success)
+                        
+                        Text("Encrypted")
+                            .font(.system(size: 11 * scalingFactor, weight: .medium))
+                            .foregroundColor(CMColor.secondaryText)
+                    }
+                }
+                
+                Spacer()
+                
+                // Balance
+                Color.clear
+                    .frame(width: 44 * scalingFactor, height: 44 * scalingFactor)
             }
-            
-            Spacer()
-            
-            Text("Safe Contacts")
-                .font(.system(size: 20 * scalingFactor, weight: .semibold))
-                .foregroundColor(CMColor.primaryText)
-            
-            Spacer()
-            
-            // Balance with invisible button
-            HStack(spacing: 6 * scalingFactor) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 16 * scalingFactor, weight: .medium))
-                Text("Back")
-                    .font(.system(size: 17 * scalingFactor, weight: .regular))
-            }
-            .opacity(0)
+            .padding(.horizontal, 20 * scalingFactor)
+            .padding(.top, 12 * scalingFactor)
+            .padding(.bottom, 16 * scalingFactor)
         }
-        .padding(.horizontal, 16 * scalingFactor)
-        .padding(.top, 8 * scalingFactor)
-        .padding(.bottom, 20 * scalingFactor)
+        .background(CMColor.background)
     }
     
     // MARK: - Search Bar View
     private func searchBarView(scalingFactor: CGFloat) -> some View {
-        HStack {
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(CMColor.secondaryText)
-                    .font(.system(size: 16 * scalingFactor, weight: .medium))
-                
-                TextField("Name, phone, or email", text: $searchText)
-                    .font(.system(size: 16 * scalingFactor, weight: .regular))
-                    .foregroundColor(CMColor.primaryText)
-                
-                Spacer()
-                
-                if !searchText.isEmpty {
-                    Button(action: {
-                        searchText = ""
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(CMColor.secondaryText)
-                            .font(.system(size: 16 * scalingFactor, weight: .medium))
-                    }
+        HStack(spacing: 10 * scalingFactor) {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(CMColor.iconSecondary)
+                .font(.system(size: 15 * scalingFactor, weight: .semibold))
+            
+            TextField("Find by name or number...", text: $searchText)
+                .font(.system(size: 15 * scalingFactor, weight: .regular))
+                .foregroundColor(CMColor.primaryText)
+            
+            if !searchText.isEmpty {
+                Button(action: {
+                    searchText = ""
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(CMColor.iconSecondary)
+                        .font(.system(size: 16 * scalingFactor, weight: .regular))
                 }
             }
-            .padding(.horizontal, 16 * scalingFactor)
-            .padding(.vertical, 12 * scalingFactor)
-            .background(CMColor.backgroundSecondary)
-            .cornerRadius(12 * scalingFactor)
         }
-        .padding(.horizontal, 16 * scalingFactor)
+        .padding(.horizontal, 18 * scalingFactor)
+        .padding(.vertical, 14 * scalingFactor)
+        .background(CMColor.surface)
+        .cornerRadius(14 * scalingFactor)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14 * scalingFactor)
+                .stroke(CMColor.border, lineWidth: 1)
+        )
+        .padding(.horizontal, 20 * scalingFactor)
+        .padding(.bottom, 16 * scalingFactor)
+    }
+    
+    // MARK: - Stats Card
+    private func statsCard(scalingFactor: CGFloat) -> some View {
+        HStack(spacing: 16 * scalingFactor) {
+            HStack(spacing: 10 * scalingFactor) {
+                ZStack {
+                    Circle()
+                        .fill(CMColor.accent.opacity(0.15))
+                        .frame(width: 36 * scalingFactor, height: 36 * scalingFactor)
+                    
+                    Image(systemName: "person.2.fill")
+                        .font(.system(size: 16 * scalingFactor, weight: .semibold))
+                        .foregroundColor(CMColor.accent)
+                }
+                
+                VStack(alignment: .leading, spacing: 2 * scalingFactor) {
+                    Text("\(viewModel.contacts.count)")
+                        .font(.system(size: 22 * scalingFactor, weight: .bold))
+                        .foregroundColor(CMColor.primaryText)
+                    
+                    Text("Protected")
+                        .font(.system(size: 12 * scalingFactor, weight: .medium))
+                        .foregroundColor(CMColor.secondaryText)
+                }
+            }
+            
+            Spacer()
+            
+            HStack(spacing: 6 * scalingFactor) {
+                Image(systemName: "checkmark.shield.fill")
+                    .font(.system(size: 13 * scalingFactor))
+                    .foregroundColor(CMColor.success)
+                
+                Text("All contacts secured")
+                    .font(.system(size: 13 * scalingFactor, weight: .medium))
+                    .foregroundColor(CMColor.secondaryText)
+            }
+        }
+        .padding(.horizontal, 18 * scalingFactor)
+        .padding(.vertical, 16 * scalingFactor)
+        .background(
+            LinearGradient(
+                colors: [CMColor.surface, CMColor.backgroundSecondary],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .cornerRadius(16 * scalingFactor)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16 * scalingFactor)
+                .stroke(CMColor.border, lineWidth: 1)
+        )
+        .padding(.horizontal, 20 * scalingFactor)
         .padding(.bottom, 20 * scalingFactor)
     }
     
     // MARK: - Loading View
     private func loadingView(scalingFactor: CGFloat) -> some View {
-        VStack(spacing: 16 * scalingFactor) {
-            ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: CMColor.primary))
-                .scaleEffect(1.2)
+        VStack(spacing: 20 * scalingFactor) {
+            ZStack {
+                Circle()
+                    .stroke(CMColor.border, lineWidth: 3)
+                    .frame(width: 50 * scalingFactor, height: 50 * scalingFactor)
+                
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: CMColor.accent))
+                    .scaleEffect(1.3)
+            }
             
-            Text("Loading contacts...")
-                .font(.system(size: 16 * scalingFactor, weight: .medium))
+            Text("Loading secured contacts...")
+                .font(.system(size: 15 * scalingFactor, weight: .medium))
                 .foregroundColor(CMColor.secondaryText)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -217,9 +291,9 @@ struct AICleanerSafeContactsView: View {
             if filteredContacts.isEmpty {
                 emptyStateView(scalingFactor: scalingFactor)
             } else {
-                LazyVStack(spacing: 0) {
+                LazyVStack(spacing: 10 * scalingFactor) {
                     ForEach(Array(filteredContacts.enumerated()), id: \.element.id) { index, contact in
-                        contactRow(contact: contact, scalingFactor: scalingFactor)
+                        contactCard(contact: contact, scalingFactor: scalingFactor)
                             .onTapGesture {
                                 selectedContactForSystemCard = contact
                                 showSystemContactCard = true
@@ -228,136 +302,156 @@ struct AICleanerSafeContactsView: View {
                                 selectedContactForContext = contact
                                 showContextMenu = true
                             }
-                        
-                        if index < filteredContacts.count - 1 {
-                            Divider()
-                                .background(CMColor.border)
-                                .padding(.horizontal, 16 * scalingFactor)
-                        }
                     }
                 }
-                .padding(.bottom, 100 * scalingFactor)
+                .padding(.horizontal, 20 * scalingFactor)
+                .padding(.bottom, 120 * scalingFactor)
             }
         }
     }
     
-    // MARK: - Contact Row
-    private func contactRow(contact: ContactData, scalingFactor: CGFloat) -> some View {
-        HStack(spacing: 16 * scalingFactor) {
-            // Contact Initial Circle
+    // MARK: - Contact Card
+    private func contactCard(contact: ContactData, scalingFactor: CGFloat) -> some View {
+        HStack(spacing: 14 * scalingFactor) {
+            // Avatar with gradient border
             ZStack {
                 Circle()
-                    .fill(CMColor.primary.opacity(0.1))
-                    .frame(width: 50 * scalingFactor, height: 50 * scalingFactor)
+                    .fill(
+                        LinearGradient(
+                            colors: [CMColor.accent.opacity(0.2), CMColor.secondary.opacity(0.1)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 56 * scalingFactor, height: 56 * scalingFactor)
                 
                 Text(contact.initials)
-                    .font(.system(size: 18 * scalingFactor, weight: .semibold))
-                    .foregroundColor(CMColor.primary)
+                    .font(.system(size: 20 * scalingFactor, weight: .bold))
+                    .foregroundColor(CMColor.accent)
             }
             
             // Contact Info
-            VStack(alignment: .leading, spacing: 4 * scalingFactor) {
+            VStack(alignment: .leading, spacing: 5 * scalingFactor) {
                 Text(contact.fullName)
-                    .font(.system(size: 17 * scalingFactor, weight: .semibold))
+                    .font(.system(size: 16 * scalingFactor, weight: .semibold))
                     .foregroundColor(CMColor.primaryText)
+                    .lineLimit(1)
                 
-                Text(contact.formattedPhoneNumber)
-                    .font(.system(size: 15 * scalingFactor, weight: .regular))
-                    .foregroundColor(CMColor.secondaryText)
+                HStack(spacing: 6 * scalingFactor) {
+                    Image(systemName: "phone.fill")
+                        .font(.system(size: 11 * scalingFactor))
+                        .foregroundColor(CMColor.iconSecondary)
+                    
+                    Text(contact.formattedPhoneNumber)
+                        .font(.system(size: 14 * scalingFactor, weight: .regular))
+                        .foregroundColor(CMColor.secondaryText)
+                        .lineLimit(1)
+                }
             }
             
             Spacer()
             
-            // Edit indicator
-            Image(systemName: "chevron.right")
-                .font(.system(size: 14 * scalingFactor, weight: .medium))
-                .foregroundColor(CMColor.secondaryText)
+            // Action indicator
+            Image(systemName: "ellipsis")
+                .font(.system(size: 16 * scalingFactor, weight: .bold))
+                .foregroundColor(CMColor.iconSecondary)
+                .rotationEffect(.degrees(90))
         }
         .padding(.horizontal, 16 * scalingFactor)
-        .padding(.vertical, 16 * scalingFactor)
-        .background(Color.clear)
-        .contentShape(Rectangle())
+        .padding(.vertical, 14 * scalingFactor)
+        .background(CMColor.surface)
+        .cornerRadius(14 * scalingFactor)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14 * scalingFactor)
+                .stroke(CMColor.border, lineWidth: 1)
+        )
     }
     
     // MARK: - Empty State View
     private func emptyStateView(scalingFactor: CGFloat) -> some View {
-        VStack(spacing: 24 * scalingFactor) {
-            // Icon
+        VStack(spacing: 28 * scalingFactor) {
+            // Icon with gradient
             ZStack {
                 Circle()
-                    .fill(CMColor.primary.opacity(0.1))
-                    .frame(width: 80 * scalingFactor, height: 80 * scalingFactor)
+                    .fill(
+                        LinearGradient(
+                            colors: [CMColor.accent.opacity(0.1), CMColor.secondary.opacity(0.05)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 100 * scalingFactor, height: 100 * scalingFactor)
                 
-                Image(systemName: "person.fill")
-                    .font(.system(size: 32 * scalingFactor, weight: .light))
-                    .foregroundColor(CMColor.primary)
+                Image(systemName: "lock.shield")
+                    .font(.system(size: 40 * scalingFactor, weight: .light))
+                    .foregroundColor(CMColor.accent)
             }
             
             // Text
-            VStack(spacing: 8 * scalingFactor) {
-                Text(searchText.isEmpty ? "No contacts yet" : "No results found")
-                    .font(.system(size: 20 * scalingFactor, weight: .semibold))
+            VStack(spacing: 10 * scalingFactor) {
+                Text(searchText.isEmpty ? "Vault is Empty" : "Nothing Found")
+                    .font(.system(size: 22 * scalingFactor, weight: .bold))
                     .foregroundColor(CMColor.primaryText)
                 
-                Text(searchText.isEmpty ? "Add your first contact to get started.\nYou can create a new one or import from your device." : "Try a different search term")
-                    .font(.system(size: 16 * scalingFactor, weight: .regular))
+                Text(searchText.isEmpty ? "Start protecting your contacts by adding them\nto your secure vault below." : "Try adjusting your search criteria")
+                    .font(.system(size: 15 * scalingFactor, weight: .regular))
                     .foregroundColor(CMColor.secondaryText)
                     .multilineTextAlignment(.center)
+                    .lineSpacing(4 * scalingFactor)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.top, 100 * scalingFactor)
+        .padding(.top, 80 * scalingFactor)
     }
     
-    // MARK: - Add Contact Buttons
-    private func addContactButton(scalingFactor: CGFloat) -> some View {
-        VStack(spacing: 12 * scalingFactor) {
-            Spacer()
-            
-            HStack(spacing: 12 * scalingFactor) {
-                // Import Button
-                Button(action: {
-                    handleImportFromContacts()
-                }) {
-                    HStack(spacing: 8 * scalingFactor) {
-                        Image(systemName: "square.and.arrow.down")
-                            .font(.system(size: 16 * scalingFactor, weight: .semibold))
-                        
-                        Text("Import")
-                            .font(.system(size: 17 * scalingFactor, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16 * scalingFactor)
-                    .background(CMColor.primary)
-                    .cornerRadius(12 * scalingFactor)
+    // MARK: - Floating Action Buttons
+    private func floatingActionButtons(scalingFactor: CGFloat) -> some View {
+        HStack(spacing: 14 * scalingFactor) {
+            // Import Button
+            Button(action: {
+                handleImportFromContacts()
+            }) {
+                HStack(spacing: 10 * scalingFactor) {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .font(.system(size: 18 * scalingFactor, weight: .semibold))
+                    
+                    Text("Transfer from Device")
+                        .font(.system(size: 16 * scalingFactor, weight: .semibold))
                 }
-                
-                // Add Manually Button
-                Button(action: {
-                    showAddContact = true
-                }) {
-                    HStack(spacing: 8 * scalingFactor) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 16 * scalingFactor, weight: .semibold))
-                        
-                        Text("Add manually")
-                            .font(.system(size: 17 * scalingFactor, weight: .semibold))
-                    }
-                    .foregroundColor(CMColor.primary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16 * scalingFactor)
-                    .background(CMColor.surface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12 * scalingFactor)
-                            .stroke(CMColor.primary, lineWidth: 1)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16 * scalingFactor)
+                .background(
+                    LinearGradient(
+                        colors: [CMColor.accent, CMColor.secondary],
+                        startPoint: .leading,
+                        endPoint: .trailing
                     )
-                    .cornerRadius(12 * scalingFactor)
-                }
+                )
+                .cornerRadius(14 * scalingFactor)
+                .shadow(color: CMColor.accent.opacity(0.3), radius: 10, x: 0, y: 4)
             }
-            .padding(.horizontal, 16 * scalingFactor)
-            .padding(.bottom, 32 * scalingFactor)
+            
+            // Add Manually Button
+            Button(action: {
+                showAddContact = true
+            }) {
+                HStack(spacing: 8 * scalingFactor) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 18 * scalingFactor, weight: .semibold))
+                        .foregroundColor(CMColor.accent)
+                }
+                .frame(width: 52 * scalingFactor, height: 52 * scalingFactor)
+                .background(CMColor.surface)
+                .cornerRadius(14 * scalingFactor)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14 * scalingFactor)
+                        .stroke(CMColor.accent, lineWidth: 1.5)
+                )
+            }
         }
+        .padding(.horizontal, 20 * scalingFactor)
+        .padding(.bottom, 36 * scalingFactor)
     }
     
     // MARK: - Helper Methods
@@ -382,10 +476,9 @@ struct AICleanerSafeContactsView: View {
         for cnContact in cnContacts {
             let contactData = ContactImportHelper.convertToContactData(cnContact)
             
-            // Check if contact already exists
             let exists = viewModel.contacts.contains { existingContact in
                 existingContact.phoneNumber == contactData.phoneNumber ||
-                (existingContact.firstName == contactData.firstName && 
+                (existingContact.firstName == contactData.firstName &&
                  existingContact.lastName == contactData.lastName)
             }
             
@@ -395,7 +488,6 @@ struct AICleanerSafeContactsView: View {
             }
         }
         
-        // Show success message
         if importedContactsCount > 0 {
             importedCount = importedContactsCount
             showImportSuccess = true
@@ -408,12 +500,8 @@ struct AICleanerSafeContactsView: View {
     }
     
     private func handleImportAndDeleteFromDevice() {
-        // Сначала импортируем контакты в SafeStorage
         handleImportedContacts(contactsToImport)
-        
-        // Затем удаляем их с устройства
         deleteContactsFromDevice(contactsToImport)
-        
         contactsToImport = []
     }
     
@@ -423,30 +511,24 @@ struct AICleanerSafeContactsView: View {
         Task {
             do {
                 for cnContact in cnContacts {
-                    // Получаем mutable версию контакта
                     let mutableContact = cnContact.mutableCopy() as! CNMutableContact
-                    
-                    // Создаем запрос на удаление
                     let saveRequest = CNSaveRequest()
                     saveRequest.delete(mutableContact)
-                    
-                    // Выполняем удаление
                     try store.execute(saveRequest)
                 }
                 
                 await MainActor.run {
-                    print("Successfully deleted \(cnContacts.count) contacts from device")
+                    print("Successfully removed \(cnContacts.count) contacts from device")
                 }
             } catch {
                 await MainActor.run {
-                    print("Error deleting contacts from device: \(error)")
+                    print("Error removing contacts from device: \(error)")
                 }
             }
         }
     }
     
     private func makePhoneCall(to phoneNumber: String) {
-        // Очищаем номер телефона от лишних символов
         let cleanedNumber = phoneNumber.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
         
         if let url = URL(string: "tel://\(cleanedNumber)") {

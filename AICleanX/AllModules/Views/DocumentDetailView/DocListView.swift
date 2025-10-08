@@ -1,73 +1,73 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-struct DocListView: View {
-    @State private var searchInput: String = ""
-    @Environment(\.dismiss) private var viewDismiss
+struct RefactoredDocListView: View {
+    @State private var filterQuery: String = ""
+    @Environment(\.dismiss) private var dismissView
     @EnvironmentObject private var storageHandler: SafeStorageManager
-    @FocusState private var isSearchFocused: Bool
-    @State private var isSelectModeActive: Bool = false
-    @State private var currentSelection: Set<UUID> = []
+    @FocusState private var isFilterActive: Bool
+    @State private var multiSelectEnabled: Bool = false
+    @State private var selectedItems: Set<UUID> = []
     
-    @State private var showImportDialog = false
-    @State private var isImportingFiles = false
+    @State private var showFilePicker = false
+    @State private var processingFiles = false
     
-    @State private var showConfirmDelete = false
-    @State private var showRemoveDeviceAlert = false
-    @State private var filesToProcess: [PickerDocResult] = []
+    @State private var showDeleteWarning = false
+    @State private var showCleanupPrompt = false
+    @State private var pendingFiles: [PickerDocResult] = []
     
-    @State private var previewTarget: SafeDocumentData?
-    @State private var showPreviewScreen = false
+    @State private var itemToView: SafeDocumentData?
+    @State private var displayViewer = false
     
-    private var allStoredDocuments: [SafeDocumentData] {
+    private var storedFiles: [SafeDocumentData] {
         storageHandler.loadAllDocuments()
     }
     
-    private var filteredDocumentList: [SafeDocumentData] {
-        if searchInput.isEmpty {
-            return allStoredDocuments
+    private var displayedFiles: [SafeDocumentData] {
+        if filterQuery.isEmpty {
+            return storedFiles
         } else {
-            return allStoredDocuments.filter { document in
-                document.fileName.lowercased().contains(searchInput.lowercased())
+            return storedFiles.filter { file in
+                file.fileName.lowercased().contains(filterQuery.lowercased())
             }
         }
     }
     
     var body: some View {
-        viewContent
+        mainContent
             .fileImporter(
-                isPresented: $showImportDialog,
-                allowedContentTypes: validFileTypes,
+                isPresented: $showFilePicker,
+                allowedContentTypes: supportedTypes,
                 allowsMultipleSelection: true
             ) { result in
-                handleImportResult(result)
+                processPickerResult(result)
             }
-            .alert("Delete documents from device?", isPresented: $showRemoveDeviceAlert) {
-                deviceRemovalButtons
+            .alert("Remove from device storage?", isPresented: $showCleanupPrompt) {
+                cleanupButtons
             } message: {
-                deviceRemovalMessage
+                cleanupMessage
             }
-            .confirmationDialog("Delete Documents", isPresented: $showConfirmDelete) {
-                deletionConfirmButtons
+            .confirmationDialog("Remove Files", isPresented: $showDeleteWarning) {
+                removalButtons
             } message: {
-                deletionConfirmMessage
+                removalMessage
             }
-            .fullScreenCover(isPresented: $showPreviewScreen) {
-                documentPreviewHolder
+            .fullScreenCover(isPresented: $displayViewer) {
+                viewerContent
             }
     }
     
-    private var viewContent: some View {
-        GeometryReader { geometry in
-            let scaleValue = geometry.size.height / 844
+    private var mainContent: some View {
+        GeometryReader { geo in
+            let scale = geo.size.height / 844
             
             VStack(spacing: 0) {
-                generateHeaderView(scaleFactor: scaleValue)
+                buildTopBar(scale: scale)
                 
-                if allStoredDocuments.isEmpty {
-                    generateEmptyState(scaleFactor: scaleValue)
+                if storedFiles.isEmpty {
+                    buildEmptyView(scale: scale)
                 } else {
-                    generateDocumentList(scaleFactor: scaleValue)
+                    buildFileGrid(scale: scale)
                 }
             }
         }
@@ -75,12 +75,12 @@ struct DocListView: View {
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .contentShape(Rectangle())
         .onTapGesture {
-            isSearchFocused = false
+            isFilterActive = false
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
     }
     
-    private var validFileTypes: [UTType] {
+    private var supportedTypes: [UTType] {
         [
             .pdf, .plainText, .rtf,
             .commaSeparatedText, .tabSeparatedText,
@@ -94,404 +94,436 @@ struct DocListView: View {
         ]
     }
     
-    private var deviceRemovalButtons: some View {
+    private var cleanupButtons: some View {
         Group {
-            Button("Yes") {
+            Button("Remove Files") {
                 Task {
-                    await saveAndCleanupDeviceFiles()
+                    await storeAndCleanup()
                 }
             }
-            Button("No", role: .cancel) {
+            Button("Keep Original", role: .cancel) {
                 Task {
-                    await saveOnlyImportedFiles()
+                    await storeWithoutCleanup()
                 }
             }
         }
     }
     
-    private var deviceRemovalMessage: some View {
-        Text("Do you want to delete these documents from your device? Note: Documents from iCloud Drive and other cloud providers cannot be deleted, but will still be securely stored in this app.")
+    private var cleanupMessage: some View {
+        Text("Would you like to remove these files from device storage after importing? Files from cloud services cannot be removed but will remain accessible within the app.")
     }
     
-    private var deletionConfirmButtons: some View {
+    private var removalButtons: some View {
         Group {
-            Button("Delete \(currentSelection.count) Documents", role: .destructive) {
-                performDeletion()
+            Button("Remove \(selectedItems.count) Items", role: .destructive) {
+                executeRemoval()
             }
-            Button("Cancel", role: .cancel) { }
+            Button("Keep Files", role: .cancel) { }
         }
     }
     
-    private var deletionConfirmMessage: some View {
-        Text("Are you sure you want to delete \(currentSelection.count) selected documents? This action cannot be undone.")
+    private var removalMessage: some View {
+        Text("This will permanently remove \(selectedItems.count) selected items. This operation cannot be reversed.")
     }
     
     @ViewBuilder
-    private var documentPreviewHolder: some View {
-        if let document = previewTarget {
-            EnhancedDocumentPreviewView(document: document)
+    private var viewerContent: some View {
+        if let file = itemToView {
+            EnhancedDocumentPreviewView(document: file)
                 .environmentObject(storageHandler)
         } else {
-            VStack {
-                Text("Error")
-                    .font(.title)
-                Text("Document not found")
-                    .foregroundColor(.secondary)
-                Button("Close") {
-                    showPreviewScreen = false
+            VStack(spacing: 16) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 48))
+                    .foregroundColor(CMColor.warning)
+                
+                Text("Unable to Load")
+                    .font(.title2.bold())
+                    .foregroundColor(CMColor.primaryText)
+                
+                Text("The requested file could not be found")
+                    .font(.subheadline)
+                    .foregroundColor(CMColor.secondaryText)
+                
+                Button("Dismiss") {
+                    displayViewer = false
                 }
-                .padding()
+                .font(.headline)
+                .foregroundColor(CMColor.white)
+                .frame(width: 120, height: 44)
+                .background(CMColor.accent)
+                .cornerRadius(22)
             }
+            .padding()
         }
     }
     
-    private func generateHeaderView(scaleFactor: CGFloat) -> some View {
-        HStack {
+    private func buildTopBar(scale: CGFloat) -> some View {
+        HStack(spacing: 0) {
             Button(action: {
-                viewDismiss()
+                dismissView()
             }) {
-                HStack(spacing: 4 * scaleFactor) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16 * scaleFactor, weight: .medium))
-                    Text("Back")
-                        .font(.system(size: 16 * scaleFactor))
+                HStack(spacing: 6 * scale) {
+                    Image(systemName: "arrow.left")
+                        .font(.system(size: 15 * scale, weight: .semibold))
+                    Text("Return")
+                        .font(.system(size: 15 * scale, weight: .medium))
                 }
-                .foregroundColor(CMColor.primary)
+                .foregroundColor(CMColor.accent)
             }
             
             Spacer()
             
-            Text("Docs")
-                .font(.system(size: 17 * scaleFactor, weight: .semibold))
+            Text("My Files")
+                .font(.system(size: 18 * scale, weight: .bold))
                 .foregroundColor(CMColor.primaryText)
             
             Spacer()
             
-            if !allStoredDocuments.isEmpty {
+            if !storedFiles.isEmpty {
                 Button(action: {
-                    isSelectModeActive.toggle()
-                    if !isSelectModeActive {
-                        currentSelection.removeAll()
+                    multiSelectEnabled.toggle()
+                    if !multiSelectEnabled {
+                        selectedItems.removeAll()
                     }
                 }) {
-                    HStack(spacing: 4 * scaleFactor) {
-                        Circle()
-                            .fill(CMColor.primary)
-                            .frame(width: 6 * scaleFactor, height: 6 * scaleFactor)
-                        Text("Select")
-                            .font(.system(size: 16 * scaleFactor))
-                            .foregroundColor(CMColor.primary)
+                    HStack(spacing: 5 * scale) {
+                        Image(systemName: multiSelectEnabled ? "checkmark.square" : "square")
+                            .font(.system(size: 15 * scale, weight: .medium))
+                        Text(multiSelectEnabled ? "Done" : "Edit")
+                            .font(.system(size: 15 * scale, weight: .medium))
                     }
+                    .foregroundColor(CMColor.accent)
                 }
             } else {
-                Spacer().frame(width: 60 * scaleFactor)
+                Spacer().frame(width: 70 * scale)
             }
         }
-        .padding(.horizontal, 16 * scaleFactor)
-        .padding(.vertical, 12 * scaleFactor)
+        .padding(.horizontal, 20 * scale)
+        .padding(.vertical, 14 * scale)
+        .background(CMColor.surface)
     }
     
-    private func generateEmptyState(scaleFactor: CGFloat) -> some View {
-        VStack(spacing: 24 * scaleFactor) {
+    private func buildEmptyView(scale: CGFloat) -> some View {
+        VStack(spacing: 28 * scale) {
             Spacer()
             
             ZStack {
-                Circle()
-                    .fill(CMColor.backgroundSecondary)
-                    .frame(width: 120 * scaleFactor, height: 120 * scaleFactor)
+                RoundedRectangle(cornerRadius: 28 * scale)
+                    .fill(CMColor.backgroundGradient)
+                    .frame(width: 140 * scale, height: 140 * scale)
                 
-                Image(systemName: "folder.fill")
-                    .font(.system(size: 48 * scaleFactor))
-                    .foregroundColor(CMColor.secondaryText)
+                Image(systemName: "tray.fill")
+                    .font(.system(size: 54 * scale, weight: .light))
+                    .foregroundColor(CMColor.iconSecondary)
             }
             
-            VStack(spacing: 8 * scaleFactor) {
-                Text("No documents yet")
-                    .font(.system(size: 20 * scaleFactor, weight: .semibold))
+            VStack(spacing: 10 * scale) {
+                Text("Nothing Here Yet")
+                    .font(.system(size: 22 * scale, weight: .bold))
                     .foregroundColor(CMColor.primaryText)
                 
-                Text("Add your first document to get started")
-                    .font(.system(size: 16 * scaleFactor))
-                    .foregroundColor(CMColor.secondaryText)
+                Text("Import files to begin organizing")
+                    .font(.system(size: 15 * scale))
+                    .foregroundColor(CMColor.tertiaryText)
                     .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40 * scale)
             }
             
             Button(action: {
-                showImportDialog = true
+                showFilePicker = true
             }) {
-                HStack(spacing: 8 * scaleFactor) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 16 * scaleFactor, weight: .medium))
+                HStack(spacing: 10 * scale) {
+                    Image(systemName: "square.and.arrow.down")
+                        .font(.system(size: 17 * scale, weight: .semibold))
                     
-                    Text("Add document")
-                        .font(.system(size: 16 * scaleFactor, weight: .semibold))
+                    Text("Import Files")
+                        .font(.system(size: 17 * scale, weight: .bold))
                 }
                 .foregroundColor(CMColor.white)
                 .frame(maxWidth: .infinity)
-                .frame(height: 50 * scaleFactor)
-                .background(CMColor.primaryGradient)
-                .cornerRadius(25 * scaleFactor)
+                .frame(height: 56 * scale)
+                .background(
+                    RoundedRectangle(cornerRadius: 16 * scale)
+                        .fill(CMColor.secondaryGradient)
+                )
             }
-            .padding(.horizontal, 40 * scaleFactor)
+            .padding(.horizontal, 50 * scale)
+            .padding(.top, 12 * scale)
             
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
-    private func generateDocumentList(scaleFactor: CGFloat) -> some View {
+    private func buildFileGrid(scale: CGFloat) -> some View {
         ScrollView(.vertical, showsIndicators: false) {
-            LazyVStack(spacing: 24 * scaleFactor) {
-                createSearchBar(scaleFactor: scaleFactor)
+            LazyVStack(spacing: 20 * scale) {
+                buildFilterBar(scale: scale)
                 
-                if !isSearchFocused || !searchInput.isEmpty {
-                    createDocumentSections(scaleFactor: scaleFactor)
+                if !isFilterActive || !filterQuery.isEmpty {
+                    buildGroupedContent(scale: scale)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                     
-                    createBottomActionButton(scaleFactor: scaleFactor)
+                    buildActionControls(scale: scale)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
                 
-                Spacer(minLength: isSearchFocused ? 200 * scaleFactor : 100 * scaleFactor)
+                Spacer(minLength: isFilterActive ? 240 * scale : 120 * scale)
             }
-            .padding(.horizontal, 16 * scaleFactor)
-            .padding(.top, 20 * scaleFactor)
-            .animation(.easeInOut(duration: 0.3), value: isSearchFocused)
+            .padding(.horizontal, 20 * scale)
+            .padding(.top, 16 * scale)
+            .animation(.easeInOut(duration: 0.25), value: isFilterActive)
         }
     }
     
-    private func createSearchBar(scaleFactor: CGFloat) -> some View {
-        HStack(spacing: 12 * scaleFactor) {
-            HStack(spacing: 8 * scaleFactor) {
-                TextField("Search", text: $searchInput)
-                    .font(.system(size: 16 * scaleFactor))
+    private func buildFilterBar(scale: CGFloat) -> some View {
+        HStack(spacing: 10 * scale) {
+            HStack(spacing: 10 * scale) {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                    .foregroundColor(CMColor.iconSecondary)
+                    .font(.system(size: 18 * scale))
+                
+                TextField("Filter by name", text: $filterQuery)
+                    .font(.system(size: 15 * scale))
                     .foregroundColor(CMColor.primaryText)
-                    .focused($isSearchFocused)
-                    .submitLabel(.search)
+                    .focused($isFilterActive)
+                    .submitLabel(.done)
                     .onSubmit {
-                        isSearchFocused = false
+                        isFilterActive = false
                     }
                 
                 Spacer()
                 
-                if isSearchFocused && !searchInput.isEmpty {
+                if isFilterActive && !filterQuery.isEmpty {
                     Button(action: {
-                        searchInput = ""
+                        filterQuery = ""
                     }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(CMColor.secondaryText)
-                            .font(.system(size: 16 * scaleFactor))
+                        Image(systemName: "multiply.circle.fill")
+                            .foregroundColor(CMColor.tertiaryText)
+                            .font(.system(size: 17 * scale))
                     }
-                } else {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(CMColor.secondaryText)
-                        .font(.system(size: 16 * scaleFactor))
                 }
             }
-            .padding(.horizontal, 16 * scaleFactor)
-            .padding(.vertical, 12 * scaleFactor)
-            .background(CMColor.surface)
-            .cornerRadius(12 * scaleFactor)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12 * scaleFactor)
-                    .stroke(isSearchFocused ? CMColor.primary.opacity(0.3) : CMColor.border, lineWidth: 1)
+            .padding(.horizontal, 18 * scale)
+            .padding(.vertical, 14 * scale)
+            .background(
+                RoundedRectangle(cornerRadius: 14 * scale)
+                    .fill(CMColor.backgroundSecondary)
             )
-            .animation(.easeInOut(duration: 0.2), value: isSearchFocused)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14 * scale)
+                    .stroke(isFilterActive ? CMColor.accent.opacity(0.4) : CMColor.border.opacity(0.3), lineWidth: 1.5)
+            )
+            .animation(.easeInOut(duration: 0.2), value: isFilterActive)
         }
     }
     
-    private func createDocumentSections(scaleFactor: CGFloat) -> some View {
-        let sections = Dictionary(grouping: filteredDocumentList) { document in
-            formatDocumentDate(document.dateAdded)
+    private func buildGroupedContent(scale: CGFloat) -> some View {
+        let grouped = Dictionary(grouping: displayedFiles) { file in
+            formatFileDate(file.dateAdded)
         }
         
-        return LazyVStack(alignment: .leading, spacing: 16 * scaleFactor) {
-            ForEach(sections.keys.sorted(by: { first, second in
-                if first == "Today" { return true }
-                if second == "Today" { return false }
-                return first < second
-            }), id: \.self) { dateKey in
-                VStack(alignment: .leading, spacing: 12 * scaleFactor) {
-                    Text(dateKey)
-                        .font(.system(size: 18 * scaleFactor, weight: .semibold))
-                        .foregroundColor(CMColor.primaryText)
+        return LazyVStack(alignment: .leading, spacing: 18 * scale) {
+            ForEach(grouped.keys.sorted(by: { a, b in
+                if a == "Recent" { return true }
+                if b == "Recent" { return false }
+                return a < b
+            }), id: \.self) { group in
+                VStack(alignment: .leading, spacing: 14 * scale) {
+                    HStack {
+                        Text(group)
+                            .font(.system(size: 16 * scale, weight: .bold))
+                            .foregroundColor(CMColor.secondaryText)
+                        
+                        Rectangle()
+                            .fill(CMColor.border.opacity(0.3))
+                            .frame(height: 1)
+                    }
                     
                     VStack(spacing: 0) {
-                        ForEach(Array((sections[dateKey] ?? []).enumerated()), id: \.element.id) { index, document in
-                            createDocumentRow(document: document, scaleFactor: scaleFactor)
+                        ForEach(Array((grouped[group] ?? []).enumerated()), id: \.element.id) { idx, file in
+                            buildFileCard(file: file, scale: scale)
                             
-                            if index < (sections[dateKey]?.count ?? 0) - 1 {
+                            if idx < (grouped[group]?.count ?? 0) - 1 {
                                 Divider()
-                                    .background(CMColor.secondaryText.opacity(0.1))
-                                    .padding(.leading, 48 * scaleFactor)
+                                    .background(CMColor.border.opacity(0.15))
+                                    .padding(.leading, 56 * scale)
                             }
                         }
                     }
                     .background(CMColor.surface)
-                    .cornerRadius(16 * scaleFactor)
+                    .cornerRadius(18 * scale)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16 * scaleFactor)
-                            .stroke(CMColor.secondaryText.opacity(0.05), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 18 * scale)
+                            .stroke(CMColor.border.opacity(0.1), lineWidth: 1)
                     )
-                    .shadow(color: CMColor.black.opacity(0.02), radius: 8 * scaleFactor, x: 0, y: 2 * scaleFactor)
+                    .shadow(color: CMColor.black.opacity(0.04), radius: 12 * scale, x: 0, y: 4 * scale)
                 }
             }
         }
     }
     
-    private func createDocumentRow(document: SafeDocumentData, scaleFactor: CGFloat) -> some View {
-        HStack(spacing: 12 * scaleFactor) {
-            generateDocumentIcon(document: document, scaleFactor: scaleFactor)
+    private func buildFileCard(file: SafeDocumentData, scale: CGFloat) -> some View {
+        HStack(spacing: 14 * scale) {
+            buildFileIcon(file: file, scale: scale)
             
-            VStack(alignment: .leading, spacing: 2 * scaleFactor) {
-                Text(document.displayName)
-                    .font(.system(size: 14 * scaleFactor, weight: .medium))
+            VStack(alignment: .leading, spacing: 4 * scale) {
+                Text(file.displayName)
+                    .font(.system(size: 15 * scale, weight: .semibold))
                     .foregroundColor(CMColor.primaryText)
                     .lineLimit(1)
                 
-                Text(document.fileSizeFormatted)
-                    .font(.system(size: 12 * scaleFactor))
-                    .foregroundColor(CMColor.secondaryText)
+                Text(file.fileSizeFormatted)
+                    .font(.system(size: 13 * scale))
+                    .foregroundColor(CMColor.tertiaryText)
             }
             
             Spacer()
             
-            if !isSelectModeActive {
+            if !multiSelectEnabled {
                 Button(action: {
-                    previewTarget = document
-                    showPreviewScreen = true
+                    itemToView = file
+                    displayViewer = true
                 }) {
-                    Image(systemName: "eye.fill")
-                        .font(.system(size: 16 * scaleFactor))
-                        .foregroundColor(CMColor.primary)
-                        .frame(width: 28 * scaleFactor, height: 28 * scaleFactor)
-                        .background(CMColor.primary.opacity(0.1))
-                        .clipShape(Circle())
+                    Image(systemName: "arrow.up.right.square.fill")
+                        .font(.system(size: 18 * scale))
+                        .foregroundColor(CMColor.accent)
+                        .frame(width: 32 * scale, height: 32 * scale)
+                        .background(CMColor.accent.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 8 * scale))
                 }
             }
             
-            if isSelectModeActive {
+            if multiSelectEnabled {
                 Button(action: {
-                    if currentSelection.contains(document.id) {
-                        currentSelection.remove(document.id)
+                    if selectedItems.contains(file.id) {
+                        selectedItems.remove(file.id)
                     } else {
-                        currentSelection.insert(document.id)
+                        selectedItems.insert(file.id)
                     }
                 }) {
-                    Image(systemName: currentSelection.contains(document.id) ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 20 * scaleFactor))
-                        .foregroundColor(currentSelection.contains(document.id) ? CMColor.primary : CMColor.secondaryText)
+                    Image(systemName: selectedItems.contains(file.id) ? "checkmark.square.fill" : "square")
+                        .font(.system(size: 22 * scale))
+                        .foregroundColor(selectedItems.contains(file.id) ? CMColor.success : CMColor.iconSecondary)
                 }
             }
         }
-        .padding(.horizontal, 16 * scaleFactor)
-        .padding(.vertical, 12 * scaleFactor)
+        .padding(.horizontal, 18 * scale)
+        .padding(.vertical, 14 * scale)
         .contentShape(Rectangle())
         .onTapGesture {
-            if isSelectModeActive {
-                if currentSelection.contains(document.id) {
-                    currentSelection.remove(document.id)
+            if multiSelectEnabled {
+                if selectedItems.contains(file.id) {
+                    selectedItems.remove(file.id)
                 } else {
-                    currentSelection.insert(document.id)
+                    selectedItems.insert(file.id)
                 }
             } else {
-                previewTarget = document
-                showPreviewScreen = true
+                itemToView = file
+                displayViewer = true
             }
         }
     }
     
-    private func generateDocumentIcon(document: SafeDocumentData, scaleFactor: CGFloat) -> some View {
-        let isImage = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "heic", "heif"].contains(document.fileExtension?.lowercased() ?? "")
+    private func buildFileIcon(file: SafeDocumentData, scale: CGFloat) -> some View {
+        let isImg = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "heic", "heif"].contains(file.fileExtension?.lowercased() ?? "")
         
         return ZStack {
-            RoundedRectangle(cornerRadius: 8 * scaleFactor)
-                .fill(isImage ? Color.clear : CMColor.primary.opacity(0.1))
-                .frame(width: 32 * scaleFactor, height: 32 * scaleFactor)
+            RoundedRectangle(cornerRadius: 10 * scale)
+                .fill(isImg ? Color.clear : CMColor.accent.opacity(0.15))
+                .frame(width: 40 * scale, height: 40 * scale)
             
-            if isImage {
-                ImageThumbnailView(documentURL: document.documentURL, scalingFactor: scaleFactor)
+            if isImg {
+                ImageThumbnailView(documentURL: file.documentURL, scalingFactor: scale)
             } else {
-                Image(systemName: document.iconName)
-                    .font(.system(size: 16 * scaleFactor, weight: .medium))
-                    .foregroundColor(CMColor.primary)
+                Image(systemName: file.iconName)
+                    .font(.system(size: 20 * scale, weight: .semibold))
+                    .foregroundColor(CMColor.accent)
             }
         }
     }
     
-    private func createBottomActionButton(scaleFactor: CGFloat) -> some View {
-        VStack(spacing: 12 * scaleFactor) {
-            if isImportingFiles {
-                HStack(spacing: 8 * scaleFactor) {
+    private func buildActionControls(scale: CGFloat) -> some View {
+        VStack(spacing: 14 * scale) {
+            if processingFiles {
+                HStack(spacing: 12 * scale) {
                     ProgressView()
-                        .scaleEffect(0.8)
+                        .scaleEffect(0.9)
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     
-                    Text("Adding documents...")
-                        .font(.system(size: 16 * scaleFactor, weight: .medium))
+                    Text("Processing imports...")
+                        .font(.system(size: 15 * scale, weight: .semibold))
                         .foregroundColor(.white)
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 52 * scaleFactor)
-                .background(CMColor.primary.opacity(0.7))
-                .cornerRadius(16 * scaleFactor)
+                .frame(height: 54 * scale)
+                .background(CMColor.accent.opacity(0.6))
+                .cornerRadius(14 * scale)
             } else {
                 Button(action: {
-                    showImportDialog = true
+                    showFilePicker = true
                 }) {
-                    Text("Add document")
-                        .font(.system(size: 16 * scaleFactor, weight: .medium))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52 * scaleFactor)
-                        .background(CMColor.primary)
-                        .cornerRadius(16 * scaleFactor)
-                }
-                .disabled(isImportingFiles)
-            }
-            
-            if isSelectModeActive && !currentSelection.isEmpty {
-                Button(action: {
-                    showConfirmDelete = true
-                }) {
-                    HStack(spacing: 8 * scaleFactor) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 16 * scaleFactor, weight: .medium))
+                    HStack(spacing: 8 * scale) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 18 * scale))
                         
-                        Text("Delete Selected (\(currentSelection.count))")
-                            .font(.system(size: 16 * scaleFactor, weight: .medium))
+                        Text("Import More")
+                            .font(.system(size: 15 * scale, weight: .bold))
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 52 * scaleFactor)
-                    .background(Color.red)
-                    .cornerRadius(16 * scaleFactor)
+                    .frame(height: 54 * scale)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14 * scale)
+                            .fill(CMColor.primaryGradient)
+                    )
                 }
-                .disabled(isImportingFiles)
+                .disabled(processingFiles)
+            }
+            
+            if multiSelectEnabled && !selectedItems.isEmpty {
+                Button(action: {
+                    showDeleteWarning = true
+                }) {
+                    HStack(spacing: 10 * scale) {
+                        Image(systemName: "xmark.bin")
+                            .font(.system(size: 17 * scale, weight: .semibold))
+                        
+                        Text("Remove (\(selectedItems.count))")
+                            .font(.system(size: 15 * scale, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54 * scale)
+                    .background(CMColor.error)
+                    .cornerRadius(14 * scale)
+                }
+                .disabled(processingFiles)
             }
         }
-        .padding(.top, 20 * scaleFactor)
-        .animation(.easeInOut(duration: 0.2), value: isImportingFiles)
+        .padding(.top, 24 * scale)
+        .animation(.easeInOut(duration: 0.25), value: processingFiles)
     }
     
-    private func formatDocumentDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        let calendar = Calendar.current
+    private func formatFileDate(_ date: Date) -> String {
+        let cal = Calendar.current
         
-        if calendar.isDateInToday(date) {
-            return "Today"
-        } else if calendar.isDateInYesterday(date) {
-            return "Yesterday"
+        if cal.isDateInToday(date) {
+            return "Recent"
+        } else if cal.isDateInYesterday(date) {
+            return "Previous Day"
         } else {
-            formatter.dateFormat = "d MMM yyyy"
-            return formatter.string(from: date)
+            let fmt = DateFormatter()
+            fmt.dateFormat = "d MMM yyyy"
+            return fmt.string(from: date)
         }
     }
     
-    private func handleImportResult(_ result: Result<[URL], Error>) {
+    private func processPickerResult(_ result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
-            var documentsReady: [PickerDocResult] = []
+            var readyFiles: [PickerDocResult] = []
             
             for url in urls {
                 guard url.startAccessingSecurityScopedResource() else {
@@ -503,25 +535,25 @@ struct DocListView: View {
                 }
                 
                 do {
-                    let data = try Data(contentsOf: url)
-                    let fileName = url.lastPathComponent
-                    let fileExtension = url.pathExtension.isEmpty ? nil : url.pathExtension
+                    let fileData = try Data(contentsOf: url)
+                    let name = url.lastPathComponent
+                    let ext = url.pathExtension.isEmpty ? nil : url.pathExtension
                     
-                    let documentResult = PickerDocResult(
-                        data: data,
-                        fileName: fileName,
-                        fileExtension: fileExtension,
+                    let item = PickerDocResult(
+                        data: fileData,
+                        fileName: name,
+                        fileExtension: ext,
                         originalURL: url
                     )
                     
-                    documentsReady.append(documentResult)
+                    readyFiles.append(item)
                 } catch {
                 }
             }
             
-            if !documentsReady.isEmpty {
-                filesToProcess = documentsReady
-                showRemoveDeviceAlert = true
+            if !readyFiles.isEmpty {
+                pendingFiles = readyFiles
+                showCleanupPrompt = true
             }
             
         case .failure(_):
@@ -529,72 +561,72 @@ struct DocListView: View {
         }
     }
     
-    private func saveAndCleanupDeviceFiles() async {
-        isImportingFiles = true
+    private func storeAndCleanup() async {
+        processingFiles = true
         
-        for fileItem in filesToProcess {
-            await saveSingleFile(fileItem)
+        for item in pendingFiles {
+            await storeSingleItem(item)
             
-            let url = fileItem.originalURL
+            let url = item.originalURL
             
             do {
-                let hasAccess = url.startAccessingSecurityScopedResource()
+                let access = url.startAccessingSecurityScopedResource()
                 
                 defer {
-                    if hasAccess {
+                    if access {
                         url.stopAccessingSecurityScopedResource()
                     }
                 }
                 
-                let fileManager = FileManager.default
-                let fileExists = fileManager.fileExists(atPath: url.path)
-                let isDeletable = fileManager.isDeletableFile(atPath: url.path)
+                let fm = FileManager.default
+                let exists = fm.fileExists(atPath: url.path)
+                let canDelete = fm.isDeletableFile(atPath: url.path)
                 
-                if fileExists && isDeletable {
-                    try fileManager.removeItem(at: url)
+                if exists && canDelete {
+                    try fm.removeItem(at: url)
                 } else if url.path.contains("/Inbox/") {
-                    try fileManager.removeItem(at: url)
+                    try fm.removeItem(at: url)
                 }
             } catch {
             }
         }
         
         await MainActor.run {
-            filesToProcess.removeAll()
-            isImportingFiles = false
+            pendingFiles.removeAll()
+            processingFiles = false
             storageHandler.objectWillChange.send()
         }
     }
     
-    private func saveOnlyImportedFiles() async {
-        isImportingFiles = true
+    private func storeWithoutCleanup() async {
+        processingFiles = true
         
-        for fileItem in filesToProcess {
-            await saveSingleFile(fileItem)
+        for item in pendingFiles {
+            await storeSingleItem(item)
         }
         
         await MainActor.run {
-            filesToProcess.removeAll()
-            isImportingFiles = false
+            pendingFiles.removeAll()
+            processingFiles = false
             storageHandler.objectWillChange.send()
         }
     }
     
-    private func saveSingleFile(_ fileItem: PickerDocResult) async {
+    private func storeSingleItem(_ item: PickerDocResult) async {
         _ = await storageHandler.saveDocumentAsync(
-            documentData: fileItem.data,
-            fileName: fileItem.fileName,
-            fileExtension: fileItem.fileExtension
+            documentData: item.data,
+            fileName: item.fileName,
+            fileExtension: item.fileExtension
         )
     }
     
-    private func performDeletion() {
-        let itemsToDelete = allStoredDocuments.filter { document in
-            currentSelection.contains(document.id)
+    private func executeRemoval() {
+        let toRemove = storedFiles.filter { file in
+            selectedItems.contains(file.id)
         }
         
-        storageHandler.deleteDocuments(itemsToDelete)
-        currentSelection.removeAll()
-        isSelectModeActive = false
+        storageHandler.deleteDocuments(toRemove)
+        selectedItems.removeAll()
+        multiSelectEnabled = false
     }
 }
