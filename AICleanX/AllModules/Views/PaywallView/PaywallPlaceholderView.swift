@@ -29,11 +29,8 @@ struct PaywallView: View {
                         
                         // --- Верхний Блок: Кнопка закрытия и Изображение (Параллельно) ---
                         HStack(alignment: .top) {
-                            
-                            // Кнопка закрытия
-                            CloseButtonView(isPresented: $isPresented)
-                                .opacity(closeButtonOpacity) // Изначально 0, показываем через 2 сек.
-                                .animation(.easeIn(duration: 0.3), value: closeButtonOpacity)
+                            // Заглушка, чтобы кнопка закрытия была слева, а изображение в центре
+                            Spacer().frame(width: 50)
                             
                             // Spacer для центрирования изображения (слева от картинки)
                             Spacer()
@@ -48,8 +45,10 @@ struct PaywallView: View {
                             // Spacer для центрирования изображения (справа от картинки)
                             Spacer()
                             
-                            // Заглушка, чтобы кнопка закрытия была слева, а изображение в центре
-                            Spacer().frame(width: 50)
+                            // Кнопка закрытия
+                            CloseButtonView(isPresented: $isPresented)
+                                .opacity(closeButtonOpacity) // Изначально 0, показываем через 2 сек.
+                                .animation(.easeIn(duration: 0.3), value: closeButtonOpacity)
                         }
                         .padding(.top, 15)
                         .padding(.leading, 10)
@@ -91,7 +90,7 @@ struct PaywallView: View {
         }
         .onAppear {
             // Появление кнопки закрытия через 2 секунды
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 self.closeButtonOpacity = 1.0
             }
         }
@@ -122,10 +121,9 @@ struct CloseButtonView: View {
 // MARK: - 2. Блок маркетинга (Тайтл + Фичи)
 struct PaywallMarketingBlockView: View {
     let features = [
-        "Uncover and eliminate hidden junk files",
-        "Identify and merge duplicate contacts effortlessly",
-        "Detect blurry photos and low-quality videos",
-        "Encrypt and secure your private media storage",
+        "Free up gigabytes of hidden junk — get speed and space for your favorite apps!",
+        "Auto-delete blurry photos and bad videos — keep only the best, save up to 50% storage!",
+        "Encrypt private media in a secret vault — save ~30% battery!"
     ]
     
     var body: some View {
@@ -207,8 +205,6 @@ struct PlanButton: View {
             ZStack(alignment: .top) {
                 
                 VStack(spacing: 8) {
-                    Spacer()
-                    
                     Text(title)
                         .font(.headline.bold())
                         .foregroundColor(isSelected ? CMColor.primary : CMColor.primaryText)
@@ -220,8 +216,6 @@ struct PlanButton: View {
                     Text(subtitle)
                         .font(.caption)
                         .foregroundColor(CMColor.secondaryText)
-                    
-                    Spacer()
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 15)
@@ -277,7 +271,9 @@ struct PaywallBottomLinksView: View {
     
     var body: some View {
         HStack(spacing: 15) {
-            Button("Privacy Policy") {
+            Spacer()
+
+            Button("Privacy") {
                 viewModel.privacyPolicyTapped()
             }
             
@@ -289,12 +285,14 @@ struct PaywallBottomLinksView: View {
             
             Spacer()
             
-            Button("Terms of Use") {
+            Button("Terms") {
                 viewModel.licenseAgreementTapped()
             }
+            
+            Spacer()
         }
         .font(.system(size: 12))
         .foregroundColor(CMColor.secondaryText)
-        .padding(.horizontal, 40)
+        .padding(.horizontal, 70)
     }
 }

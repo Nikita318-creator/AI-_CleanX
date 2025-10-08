@@ -66,7 +66,6 @@ final class ApphudPurchaseService {
 
     /// Checks if the user has an active subscription.
     var hasActiveSubscription: Bool {
-//        true // todo PRO
         Apphud.hasActiveSubscription()
     }
     
