@@ -1,5 +1,4 @@
 import SwiftUI
-import ApphudSDK
 import AdSupport
 import CoreData
 
@@ -55,8 +54,4 @@ struct OnboardingView: View {
             }
         }
     }
-}
-
-#Preview {
-    OnboardingView()
 }

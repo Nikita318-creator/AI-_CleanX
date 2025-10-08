@@ -42,10 +42,8 @@ final class MainViewModel: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    private let purchaseService = ApphudPurchaseService()
-
     var hasActiveSubscription: Bool {
-        purchaseService.hasActiveSubscription
+        ApphudPurchaseService.shared.hasActiveSubscription
     }
     
     init() {

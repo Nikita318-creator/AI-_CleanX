@@ -1,5 +1,4 @@
 import SwiftUI
-import ApphudSDK
 import AdSupport
 import CoreData
 

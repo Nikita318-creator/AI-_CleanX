@@ -12,7 +12,6 @@ final class PaywallViewModel: ObservableObject {
     
     // MARK: - Private Properties
     
-    private let purchaseService = ApphudPurchaseService()
     private let isPresentedBinding: Binding<Bool>
 
     // MARK: - Published Properties
@@ -36,7 +35,7 @@ final class PaywallViewModel: ObservableObject {
     /// Handles the purchase button tap action.
     @MainActor
     func continueTapped(with plan: PurchaseServiceProduct) {
-        purchaseService.purchase(plan: plan) { [weak self] result in
+        ApphudPurchaseService.shared.purchase(plan: plan) { [weak self] result in
             guard let self = self else { return }
             
             if case .failure(let error) = result {
@@ -50,7 +49,7 @@ final class PaywallViewModel: ObservableObject {
     
     @MainActor
     func restoreTapped() {
-        purchaseService.restore() { [weak self] result in
+        ApphudPurchaseService.shared.restore() { [weak self] result in
             guard let self = self else { return }
             
             if case .failure(let error) = result {
@@ -79,9 +78,9 @@ final class PaywallViewModel: ObservableObject {
     
     private func updatePrices() async {
         await MainActor.run {
-            self.weekPrice = purchaseService.localizedPrice(for: .week) ?? "N/A"
-            self.monthPrice = purchaseService.localizedPrice(for: .month) ?? "N/A"
-            self.monthPricePerWeek = purchaseService.perWeekPrice(for: .month) ?? "N/A"
+            self.weekPrice = ApphudPurchaseService.shared.localizedPrice(for: .week) ?? "N/A"
+            self.monthPrice = ApphudPurchaseService.shared.localizedPrice(for: .month) ?? "N/A"
+            self.monthPricePerWeek = ApphudPurchaseService.shared.perWeekPrice(for: .month) ?? "N/A"
         }
     }
     

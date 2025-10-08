@@ -32,10 +32,8 @@ class AIFeatureViewModel: ObservableObject {
         return "Saved: \(totalSavedInCache), Remove: \(totalSwipeDecisionsForDeletion)"
     }
     
-    private let purchaseService = ApphudPurchaseService()
-
     var hasActiveSubscription: Bool {
-        purchaseService.hasActiveSubscription
+        ApphudPurchaseService.shared.hasActiveSubscription
     }
     
     private let mediaCleanerService = AIMainCleanService.shared

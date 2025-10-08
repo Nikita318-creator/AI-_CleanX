@@ -7,8 +7,8 @@ import Combine
 /// Defines the supported subscription product types.
 // todo PRO
 enum PurchaseServiceProduct: String, CaseIterable {
-    case week = "1"
-    case month = "2"
+    case week = "Nat.AICleanX.com.AICleanX.week"
+    case month = "Nat.AICleanX.com.AICleanX.Month"
 }
 
 /// Defines the outcome of a purchase or restore operation.
@@ -70,9 +70,11 @@ final class ApphudPurchaseService {
         Apphud.hasActiveSubscription()
     }
     
+    static var shared = ApphudPurchaseService()
+    
     // MARK: - Initialization
     
-    init() {
+    private init() {
         Task {
             await fetchProducts()
         }

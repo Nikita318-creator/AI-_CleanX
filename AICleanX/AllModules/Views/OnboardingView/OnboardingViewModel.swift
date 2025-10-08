@@ -76,9 +76,7 @@ final class OnboardingViewModel: ObservableObject {
  
     @MainActor
     func restoreTapped() {
-        let purchaseService = ApphudPurchaseService()
-
-        purchaseService.restore() { [weak self] result in
+        ApphudPurchaseService.shared.restore() { [weak self] result in
             switch result {
             case .failure(let error):
                 print("Error purchasing: \(error?.localizedDescription ?? "Unknown error")")
