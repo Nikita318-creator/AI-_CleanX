@@ -16,42 +16,42 @@ struct OnboardingView: View {
                 }
             }
             .tabViewStyle(.page)
-            .background(Color.white).ignoresSafeArea()
+            .background(.backgroundSecondary).ignoresSafeArea()
             
-            VStack {
-                Spacer()
-                HStack(spacing: 20) {
-                    Button(action: {
-                        viewModel.privacyPolicyTapped()
-                    }) {
-                        Text("Privacy Policy")
-                            .font(.system(size: 12, weight: .regular))
-                            .foregroundColor(CMColor.secondaryText)
-                    }
-                    
-                    Spacer()
-
-                    Button(action: {
-                        viewModel.restoreTapped()
-                    }) {
-                        Text("Restore")
-                            .font(.system(size: 12, weight: .regular))
-                            .foregroundColor(CMColor.secondaryText)
-                    }
-                    
-                    Spacer()
-
-                    Button(action: {
-                        viewModel.licenseAgreementTapped()
-                    }) {
-                        Text("Terms of Use")
-                            .font(.system(size: 12, weight: .regular))
-                            .foregroundColor(CMColor.secondaryText)
-                    }
-                }
-                .padding(.bottom, 20)
-                .padding(.horizontal, 40)
-            }
+//            VStack {
+//                Spacer()
+//                HStack(spacing: 20) {
+//                    Button(action: {
+//                        viewModel.privacyPolicyTapped()
+//                    }) {
+//                        Text("Privacy Policy")
+//                            .font(.system(size: 12, weight: .regular))
+//                            .foregroundColor(CMColor.secondaryText)
+//                    }
+//                    
+//                    Spacer()
+//
+//                    Button(action: {
+//                        viewModel.restoreTapped()
+//                    }) {
+//                        Text("Restore")
+//                            .font(.system(size: 12, weight: .regular))
+//                            .foregroundColor(CMColor.secondaryText)
+//                    }
+//                    
+//                    Spacer()
+//
+//                    Button(action: {
+//                        viewModel.licenseAgreementTapped()
+//                    }) {
+//                        Text("Terms of Use")
+//                            .font(.system(size: 12, weight: .regular))
+//                            .foregroundColor(CMColor.secondaryText)
+//                    }
+//                }
+//                .padding(.bottom, 20)
+//                .padding(.horizontal, 40)
+//            }
         }
     }
 }

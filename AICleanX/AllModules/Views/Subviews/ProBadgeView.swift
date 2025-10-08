@@ -2,7 +2,6 @@
 import SwiftUI
 
 struct ProBadgeView: View {
-    @StateObject private var viewModel = AICleanSpaceViewModel()
     @Binding var isPaywallPresented: Bool
 
     private var scalingFactor: CGFloat {

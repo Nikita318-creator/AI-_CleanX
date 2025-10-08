@@ -50,6 +50,7 @@ struct CleanerNextLevelView: View {
         .fullScreenCover(isPresented: $isPaywallPresented) {
             PaywallView(isPresented: $isPaywallPresented)
                 .onDisappear {
+                    viewModel.setupBindings()
                     paywallShown = true
                 }
         }

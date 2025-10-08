@@ -18,25 +18,25 @@ final class OnboardingViewModel: ObservableObject {
     // MARK: - Вариант 1: Более технический (Intelligent Organizer, Connection Performance, Data Protection Vault)
     [
         OnboardingScreen(
-            title: "Intelligent photo and media organizer",
-            highlightedPart: "Intelligent Photo & Media",
+            title: "Intelligent Photo and Media Organizer",
+            highlightedPart: "Photo and Media Organizer",
             subtitle: "",
             imageName: "onboard1",
-            isLastScreen: true
+            isLastScreen: false
         ),
         OnboardingScreen(
-            title: "Check connection performance",
+            title: "Check Connection Performance",
             highlightedPart: "Connection Performance",
             subtitle: "",
             imageName: "onboard2",
             isLastScreen: false
         ),
         OnboardingScreen(
-            title: "Private data protection vault",
-            highlightedPart: "Data Protection Vault",
+            title: "Private Data Protection Vault",
+            highlightedPart: "Private Data",
             subtitle: "",
             imageName: "onboard3",
-            isLastScreen: false
+            isLastScreen: true
         ),
     ]
     // MARK: - вариант 2 - устрой А/Б тест

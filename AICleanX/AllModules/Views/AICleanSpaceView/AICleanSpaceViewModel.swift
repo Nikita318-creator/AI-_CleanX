@@ -1,7 +1,6 @@
 import Foundation
 import SwiftUI
 import Combine
-import Photos
 
 @MainActor
 final class AICleanSpaceViewModel: ObservableObject {
@@ -33,15 +32,13 @@ final class AICleanSpaceViewModel: ObservableObject {
     // MARK: - Private Properties
     private var cancellables = Set<AnyCancellable>()
     private var scanTimer: Timer?
-    private let mediaCleanerService = AIMainCleanService.shared
+    private lazy var mediaCleanerService = AIMainCleanService.shared
     
     // MARK: - Initialization
     
-    init() {
-        setupBindings()
-    }
+    init() {}
     
-    private func setupBindings() {
+    func setupBindings() {
         // Subscribe to progress updates
         mediaCleanerService.progressPublisher
             .receive(on: DispatchQueue.main)
@@ -97,57 +94,5 @@ final class AICleanSpaceViewModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .assign(to: \.videosPreview, on: self)
             .store(in: &cancellables)
-    }
-        
-    // MARK: - Media Cleaner Methods
-    func checkPhotoLibraryPermission() -> PHAuthorizationStatus {
-        return mediaCleanerService.checkAuthorizationStatus()
-    }
-    
-    func requestPhotoLibraryPermission() {
-        mediaCleanerService.requestAuthorization { [weak self] status in
-            Task { @MainActor in
-                if status == .authorized {
-                    self?.startScanning()
-                }
-            }
-        }
-    }
-    
-    func startScanning() {
-        guard case .idle = mainScanState else { return }
-        
-        mainScanState = .scanning(progress: 0.0)
-        scanningProgressValue = 0.0
-        
-        // Start actual media scanning
-        Task.detached {
-            await self.mediaCleanerService.scanAllImages()
-            await self.mediaCleanerService.scanVideos()
-        }
-        
-        // Monitor progress from the service
-        mediaCleanerService.progressPublisher
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] progress in
-                self?.scanningProgressValue = progress.value
-                self?.mainScanState = progress.isFinished ? .completed : .scanning(progress: progress.value)
-            }
-            .store(in: &cancellables)
-    }
-    
-    func getMedia(for type: AICleanServiceType) -> [AICleanServiceSection] {
-        return mediaCleanerService.getMedia(type)
-    }
-    
-    func deleteAssets(_ assets: Set<PHAsset>, completion: @escaping (Bool) -> Void) {
-        mediaCleanerService.delete(assets: assets, completion: completion)
-    }
-    
-    func resetToIdle() {
-        scanTimer?.invalidate()
-        scanTimer = nil
-        mainScanState = .idle
-        scanningProgressValue = 0.0
     }
 }

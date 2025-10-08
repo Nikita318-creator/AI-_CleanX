@@ -146,7 +146,7 @@ struct MainView: View {
                 // Запуск при появлении экрана (при запуске приложения)
                 startPromotion()
             }
-            // ... (fullScreenCover блоки) ...
+
             .fullScreenCover(item: $presentedView) { viewType in
                 switch viewType {
                 case .contacts:
