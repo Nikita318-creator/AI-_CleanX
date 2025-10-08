@@ -167,7 +167,7 @@ struct MainView: View {
             }
             // ВАЖНОЕ ИСПРАВЛЕНИЕ БАГА: onDisappear для повторного запуска
             .fullScreenCover(isPresented: $showSwipeModeView) {
-                AIFeatureView(isPaywallPresented: $isPaywallPresented)
+                AIFeatureView(isPaywallPresented: $isPaywallPresented, isSwipeModePresented: $showSwipeModeView )
                 // При закрытии оверлея, принудительно запускаем анимацию снова.
                     .onDisappear {
                         startPromotion()

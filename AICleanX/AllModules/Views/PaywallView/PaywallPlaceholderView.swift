@@ -10,6 +10,9 @@ struct PaywallView: View {
     // Состояние для отображения кнопки закрытия (используем для opacity)
     @State private var closeButtonOpacity: Double = 0.0
 
+    // MARK: - ID для ScrollViewReader
+    private let scrollBottomID = "BottomAnchor"
+
     init(isPresented: Binding<Bool>) {
         self._isPresented = isPresented
         // NOTE: Используйте здесь ваш фактический инициализатор PaywallViewModel
@@ -21,79 +24,92 @@ struct PaywallView: View {
             CMColor.background
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                
-                // --- Скроллируемая область (Теперь включает крестик и картинку) ---
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        
-                        // --- Верхний Блок: Кнопка закрытия и Изображение (Параллельно) ---
-                        HStack(alignment: .top) {
-                            // Заглушка, чтобы кнопка закрытия была слева, а изображение в центре
-                            Spacer().frame(width: 50)
+            // 1. Используем ScrollViewReader для управления прокруткой
+            ScrollViewReader { proxy in
+                VStack(spacing: 0) {
+                    
+                    // --- Скроллируемая область ---
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(spacing: 0) {
                             
-                            // Spacer для центрирования изображения (слева от картинки)
-                            Spacer()
-                            
-                            // Изображение
-                            Image("paywallImage")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: UIScreen.main.bounds.width * 0.675)
-                                .cornerRadius(10)
-                            
-                            // Spacer для центрирования изображения (справа от картинки)
-                            Spacer()
-                            
-                            // Кнопка закрытия
-                            CloseButtonView(isPresented: $isPresented)
-                                .opacity(closeButtonOpacity) // Изначально 0, показываем через 2 сек.
-                                .animation(.easeIn(duration: 0.3), value: closeButtonOpacity)
-                        }
-                        .padding(.top, 15)
-                        .padding(.leading, 10)
+                            // --- Верхний Блок: Кнопка закрытия и Изображение ---
+                            HStack(alignment: .top) {
+                                // Заглушка, чтобы кнопка закрытия была слева, а изображение в центре
+                                Spacer().frame(width: 50)
+                                    
+                                Spacer()
+                                    
+                                // Изображение
+                                Image("paywallImage")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: UIScreen.main.bounds.width * 0.675)
+                                    .cornerRadius(10)
+                                    
+                                Spacer()
+                                    
+                                // Кнопка закрытия
+                                CloseButtonView(isPresented: $isPresented)
+                                    .opacity(closeButtonOpacity)
+                                    .animation(.easeIn(duration: 0.3), value: closeButtonOpacity)
+                            }
+                            .padding(.top, 15)
+                            .padding(.leading, 10)
 
-                        // --- Тайтл и Фичи ---
-                        PaywallMarketingBlockView()
-                            .padding(.top, 10)
-                        
-                        // --- Блок выбора подписки (Неделя / Месяц) ---
-                        SubscriptionSelectorView(
-                            viewModel: viewModel,
-                            selectedPlan: $selectedPlan
-                        )
-                        .padding(.horizontal, 20)
-                        .padding(.top, 25)
-                        
-                        Text("Cancel anytime")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(CMColor.secondaryText.opacity(0.6))
+                            // --- Тайтл и Фичи ---
+                            PaywallMarketingBlockView()
+                                .padding(.top, 10)
+                            
+                            // --- Блок выбора подписки (Неделя / Месяц) ---
+                            SubscriptionSelectorView(
+                                viewModel: viewModel,
+                                selectedPlan: $selectedPlan
+                            )
+                            .padding(.horizontal, 20)
                             .padding(.top, 25)
-                            .padding(.bottom, 20)
+                            
+                            // 2. Добавляем ID к самому нижнему элементу в ScrollView
+                            Text("Cancel anytime")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(CMColor.secondaryText.opacity(0.6))
+                                .padding(.top, 25)
+                                .padding(.bottom, 20)
+                                .id(scrollBottomID) // <-- Цель для прокрутки
+                        }
+                    } // Конец ScrollView
+                    
+                    Spacer(minLength: 0)
+                    
+                    // --- Нижняя часть: Кнопка Продолжить и ссылки (Не скроллируются) ---
+                    VStack(spacing: 0) {
+                        PaywallContinueButton(action: {
+                            viewModel.continueTapped(with: selectedPlan == .month ? .month : .week)
+                        })
+                        .padding(.horizontal, 30)
+                        .padding(.top, 10)
+                        
+                        PaywallBottomLinksView(isPresented: $isPresented, viewModel: viewModel)
+                            .padding(.vertical, 10)
+                    }
+                } // Конец VStack
+                
+                // 3. Вызов прокрутки в onAppear
+                .onAppear {
+                    // Появление кнопки закрытия через 2 секунды
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        self.closeButtonOpacity = 1.0
+                    }
+                    
+                    // Автопрокрутка к низу через 1 секунду
+                    // Используем DispatchQueue.main.asyncAfter для задержки
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        withAnimation(.easeInOut(duration: 1.0)) { // Анимация для плавности
+                            proxy.scrollTo(scrollBottomID, anchor: .bottom)
+                        }
                     }
                 }
-                
-                Spacer(minLength: 0)
-                
-                // --- Нижняя часть: Кнопка Продолжить и ссылки (Не скроллируются) ---
-                VStack(spacing: 0) {
-                    PaywallContinueButton(action: {
-                        viewModel.continueTapped(with: selectedPlan == .month ? .month : .week)
-                    })
-                    .padding(.horizontal, 20)
-                    .padding(.top, 10)
-                    
-                    PaywallBottomLinksView(isPresented: $isPresented, viewModel: viewModel)
-                        .padding(.vertical, 10)
-                }
-            }
-        }
-        .onAppear {
-            // Появление кнопки закрытия через 2 секунды
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                self.closeButtonOpacity = 1.0
-            }
-        }
+            } // Конец ScrollViewReader
+        } // Конец ZStack
     }
 }
 
@@ -254,12 +270,12 @@ struct PaywallContinueButton: View {
     var body: some View {
         Button(action: action) {
             Text("Continue")
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(size: 24, weight: .semibold))
                 .foregroundColor(CMColor.white)
                 .frame(maxWidth: .infinity)
-                .frame(height: 50)
+                .frame(height: 60)
                 .background(CMColor.primary)
-                .cornerRadius(8)
+                .cornerRadius(30)
         }
     }
 }

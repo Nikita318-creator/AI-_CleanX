@@ -1,9 +1,8 @@
 import SwiftUI
 import Combine
 
-// todo test111
 enum UrlsConstants {
-    static let privacy = ""
+    static let privacy = "https://sites.google.com/view/icecleanerai"
     static let terms = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
 }
 
@@ -54,7 +53,7 @@ final class PaywallViewModel: ObservableObject {
             
             if case .failure(let error) = result {
                 print("Error during restore: \(error?.localizedDescription ?? "Unknown error")")
-                self.dismissPaywall() // todo test111 показать алерт?
+//                // todo test111 показать алерт?
                 return
             }
             

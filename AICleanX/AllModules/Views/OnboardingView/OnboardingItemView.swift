@@ -64,14 +64,14 @@ struct OnboardingItemView: View {
                         }
                     }) {
                         Text("Continue")
-                            .font(.system(size: 17, weight: .bold))
-                            .foregroundColor(Color.white)
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundColor(CMColor.white)
                             .frame(maxWidth: .infinity)
-                            .padding()
+                            .frame(height: 60)
                             .background(CMColor.primary)
-                            .cornerRadius(12)
-                            .padding(.horizontal, 24)
+                            .cornerRadius(30)
                     }
+                    .padding(.horizontal, 30) // <-- Добавили внешний паддинг к кнопке
                 }
                 .padding(.top, 25)
                 .padding(.bottom, 50)

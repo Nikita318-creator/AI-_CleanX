@@ -5,6 +5,9 @@ struct AIFeatureView: View {
     @StateObject private var viewModel = AIFeatureViewModel()
     @Binding var isPaywallPresented: Bool
     
+    // 👈 НОВЫЙ БИНДИНГ ДЛЯ ЗАКРЫТИЯ ТЕКУЩЕГО ЭКРАНА
+    @Binding var isSwipeModePresented: Bool
+    
     @Environment(\.dismiss) var dismiss
 
     @State private var presentedSwipeView: SwipedPhotoModel?
@@ -102,6 +105,7 @@ struct AIFeatureView: View {
         
     @ViewBuilder
     private func headerView() -> some View {
+        // ... (код headerView остается прежним)
         VStack(alignment: .leading, spacing: 16) {
             
             // MARK: - Header with Back Button (Стилизовано по вашему примеру)
@@ -203,7 +207,12 @@ struct AIFeatureView: View {
                 impact.impactOccurred()
                 
                 if !viewModel.hasActiveSubscription {
-                    isPaywallPresented = true
+                    // 👇 НОВОЕ ИСПРАВЛЕНИЕ: Закрываем текущий экран перед открытием Paywall
+                    isSwipeModePresented = false
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        isPaywallPresented = true
+                    }
                 } else {
                     showSwipeOnboarding = true
                 }
@@ -242,6 +251,7 @@ struct AIFeatureView: View {
         )
     }
     
+    // ... (код resultsReadyCard остается прежним)
     @ViewBuilder
     private func resultsReadyCard() -> some View {
         Button(action: {
@@ -315,6 +325,7 @@ struct AIFeatureView: View {
         
     @ViewBuilder
     private func categoriesSection() -> some View {
+        // ... (код categoriesSection остается прежним)
         VStack(alignment: .leading, spacing: 20) {
             HStack {
                 Text("Detection Categories")
@@ -389,7 +400,13 @@ struct AIFeatureView: View {
             impact.impactOccurred()
             
             if !viewModel.hasActiveSubscription {
-                isPaywallPresented = true
+                // 👇 НОВОЕ ИСПРАВЛЕНИЕ: Закрываем текущий экран перед открытием Paywall
+                isSwipeModePresented = false
+                
+//                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isPaywallPresented = true
+//                }
+                return
             } else {
                 let actualType: AICleanServiceType.ImageType
                 if type == .blurred {
@@ -410,6 +427,7 @@ struct AIFeatureView: View {
                 }
             }
         } label: {
+            // ... (остальной код categoryCard остается прежним)
             HStack(spacing: 16) {
                 // Icon
                 ZStack {
@@ -498,6 +516,7 @@ struct AIFeatureView: View {
         .buttonStyle(.plain)
     }
     
+    // ... (formatMegabytes остается прежним)
     private func formatMegabytes(_ megabytes: Double) -> String {
         if megabytes < 1 {
             return String(format: "%.0f KB", megabytes * 1024)

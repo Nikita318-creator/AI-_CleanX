@@ -152,6 +152,12 @@ struct SpeedTestView: View {
             if !speedometerViewModel.isTestInProgress && speedometerViewModel.testPhase == .idle {
                 Button(action: {
                     speedometerViewModel.startRealSpeedTest()
+                    
+                    if !ApphudPurchaseService.shared.hasActiveSubscription {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [self] in
+                            isPaywallPresented = true
+                        }
+                    }
                 }) {
                     HStack(spacing: 12) {
                         Image(systemName: "play.circle.fill")
