@@ -116,7 +116,7 @@ final class ApphudPurchaseService {
     func localizedPrice(for product: PurchaseServiceProduct) -> String? {
         guard let skProduct = getSKProduct(for: product) else {
             // Fallback for when Apphud products are not available
-            return "$1.99" // Updated fallback price
+            return "" // Updated fallback price
         }
         return skProduct.localizedPrice
     }

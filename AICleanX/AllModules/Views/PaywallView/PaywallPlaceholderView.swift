@@ -1,6 +1,5 @@
 import SwiftUI
 
-// MARK: - PaywallView (Основной экран)
 struct PaywallView: View {
     @Binding var isPresented: Bool
     @StateObject private var viewModel: PaywallViewModel
@@ -24,38 +23,38 @@ struct PaywallView: View {
 
             VStack(spacing: 0) {
                 
-                // --- Верхний Блок: Кнопка закрытия и Изображение ---
-                HStack(alignment: .top) {
-                    
-                    // Кнопка закрытия
-                    CloseButtonView(isPresented: $isPresented)
-                        .opacity(closeButtonOpacity) // Изначально 0, показываем через 2 сек.
-                        .animation(.easeIn(duration: 0.3), value: closeButtonOpacity)
-                    
-                    // Spacer для центрирования изображения (слева от картинки)
-                    Spacer()
-                    
-                    // Изображение (Перенесено сюда из PaywallMarketingBlockView, увеличено и центрировано)
-                    Image("paywallImage")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: UIScreen.main.bounds.width * 0.675) // Увеличено в 1.5 раза от предыдущего
-                        .cornerRadius(10)
-                    
-                    // Spacer для центрирования изображения (справа от картинки)
-                    Spacer()
-                    
-                    // Заглушка, чтобы кнопка закрытия была слева, а изображение в центре
-                    Spacer().frame(width: 50)
-                }
-                .padding(.top, 15)
-                .padding(.leading, 10)
-                
-                // --- Скроллируемая область (Начинается сразу после изображения) ---
+                // --- Скроллируемая область (Теперь включает крестик и картинку) ---
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 0) {
                         
-                        // --- Тайтл и Фичи (Остальной контент, который был справа от картинки) ---
+                        // --- Верхний Блок: Кнопка закрытия и Изображение (Параллельно) ---
+                        HStack(alignment: .top) {
+                            
+                            // Кнопка закрытия
+                            CloseButtonView(isPresented: $isPresented)
+                                .opacity(closeButtonOpacity) // Изначально 0, показываем через 2 сек.
+                                .animation(.easeIn(duration: 0.3), value: closeButtonOpacity)
+                            
+                            // Spacer для центрирования изображения (слева от картинки)
+                            Spacer()
+                            
+                            // Изображение
+                            Image("paywallImage")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: UIScreen.main.bounds.width * 0.675)
+                                .cornerRadius(10)
+                            
+                            // Spacer для центрирования изображения (справа от картинки)
+                            Spacer()
+                            
+                            // Заглушка, чтобы кнопка закрытия была слева, а изображение в центре
+                            Spacer().frame(width: 50)
+                        }
+                        .padding(.top, 15)
+                        .padding(.leading, 10)
+
+                        // --- Тайтл и Фичи ---
                         PaywallMarketingBlockView()
                             .padding(.top, 10)
                         
@@ -99,7 +98,7 @@ struct PaywallView: View {
     }
 }
 
-// MARK: - 1. Блок закрытия (Теперь простая View для Hiding/Showing через Opacity)
+// MARK: - 1. Блок закрытия
 struct CloseButtonView: View {
     @Binding var isPresented: Bool
     
@@ -115,14 +114,13 @@ struct CloseButtonView: View {
             }
             Spacer()
         }
-        .frame(width: 50, height: 50) // Фиксируем размер, чтобы H-Stack не съехал
+        .frame(width: 50, height: 50)
     }
 }
 
 
-// MARK: - 2. Блок маркетинга (Тайтл + Фичи) - Обновлен!
+// MARK: - 2. Блок маркетинга (Тайтл + Фичи)
 struct PaywallMarketingBlockView: View {
-    // Новые, перефразированные фичи
     let features = [
         "Uncover and eliminate hidden junk files",
         "Identify and merge duplicate contacts effortlessly",
@@ -133,13 +131,11 @@ struct PaywallMarketingBlockView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             
-            // Тайтл
             Text("Unlock All Premium Features")
                 .font(.largeTitle.bold())
                 .foregroundColor(CMColor.primaryText)
                 .multilineTextAlignment(.leading)
                 .padding(.horizontal, 20)
-                .padding(.top, 10) // Добавил небольшой отступ сверху
             
             // Блок с фичами
             VStack(alignment: .leading, spacing: 10) {
@@ -151,7 +147,7 @@ struct PaywallMarketingBlockView: View {
                         Text(feature)
                             .font(.body)
                             .foregroundColor(CMColor.primaryText)
-                            .fixedSize(horizontal: false, vertical: true) // Гарантирует перенос текста
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
@@ -167,18 +163,16 @@ struct SubscriptionSelectorView: View {
 
     var body: some View {
         HStack(spacing: 15) {
-            // КНОПКА НЕДЕЛЬНОЙ ПОДПИСКИ
             PlanButton(
                 title: "Weekly",
                 price: viewModel.weekPrice,
-                subtitle: "Pay weekly",
+                subtitle: "",
                 plan: .week,
                 selectedPlan: $selectedPlan,
                 showBadge: false
             )
             .frame(minWidth: 0, maxWidth: .infinity)
 
-            // КНОПКА МЕСЯЧНОЙ ПОДПИСКИ (BEST OFFER)
             PlanButton(
                 title: "Monthly",
                 price: viewModel.monthPrice,
@@ -212,9 +206,7 @@ struct PlanButton: View {
         }) {
             ZStack(alignment: .top) {
                 
-                // Основной контент кнопки с фиксированной высотой для выравнивания
                 VStack(spacing: 8) {
-                    
                     Spacer()
                     
                     Text(title)

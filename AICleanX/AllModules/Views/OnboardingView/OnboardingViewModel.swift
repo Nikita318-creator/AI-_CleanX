@@ -14,29 +14,55 @@ struct OnboardingScreen: Identifiable {
 }
 
 final class OnboardingViewModel: ObservableObject {
-    let screens: [OnboardingScreen] = [
+    let screens: [OnboardingScreen] =
+    // MARK: - Вариант 1: Более технический (Intelligent Organizer, Connection Performance, Data Protection Vault)
+    [
         OnboardingScreen(
-            title: "Secure your personal space",
-            highlightedPart: "Secure your personal space",
-            subtitle: "Store important files, photos and contacts in a hidden folder. Only you have the key.",
-            imageName: "onboarding1",
-            isLastScreen: false
-        ),
-        OnboardingScreen(
-            title: "Test your internet speed",
-            highlightedPart: "Test your internet speed",
-            subtitle: "See if you really get what you pay for from your provider.",
-            imageName: "onboarding2",
-            isLastScreen: false
-        ),
-        OnboardingScreen(
-            title: "Smart gallery cleanup",
-            highlightedPart: "Smart gallery cleanup",
-            subtitle: "Spot repeated shots and remove them effortlessly.",
-            imageName: "onboarding3",
+            title: "Intelligent photo and media organizer",
+            highlightedPart: "Intelligent Photo & Media",
+            subtitle: "",
+            imageName: "onboard1",
             isLastScreen: true
-        )
+        ),
+        OnboardingScreen(
+            title: "Check connection performance",
+            highlightedPart: "Connection Performance",
+            subtitle: "",
+            imageName: "onboard2",
+            isLastScreen: false
+        ),
+        OnboardingScreen(
+            title: "Private data protection vault",
+            highlightedPart: "Data Protection Vault",
+            subtitle: "",
+            imageName: "onboard3",
+            isLastScreen: false
+        ),
     ]
+    // MARK: - вариант 2 - устрой А/Б тест
+//    [
+//        OnboardingScreen(
+//            title: "Reclaim space with smart album analysis",
+//            highlightedPart: "Reclaim Space",
+//            subtitle: "",
+//            imageName: "onboarding1",
+//            isLastScreen: true
+//        ),
+//        OnboardingScreen(
+//            title: "Verify your network velocity",
+//            highlightedPart: "Network Velocity",
+//            subtitle: "",
+//            imageName: "onboarding2",
+//            isLastScreen: false
+//        ),
+//        OnboardingScreen(
+//            title: "Encrypt and shield your files",
+//            highlightedPart: "Encrypt and Shield",
+//            subtitle: "",
+//            imageName: "onboarding3",
+//            isLastScreen: false
+//        ),
+//    ]
     
     func licenseAgreementTapped() {
         guard let url = URL(string: UrlsConstants.terms) else { return }
