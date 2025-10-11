@@ -163,7 +163,7 @@ struct SimilarityPhotoDetailView: View {
                 if viewModel.hasSelectedItems {
                     Button {
                         withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                            viewModel.deleteSelected()
+                            viewModel.deleteSelected() { _ in }
                         }
                     } label: {
                         HStack {
@@ -193,13 +193,3 @@ struct SimilarityPhotoDetailView: View {
         .navigationBarHidden(true)
     }
 }
-
-// MARK: - Preview
-#if DEBUG
-struct SimilarityPhotoDetailView_Previews: PreviewProvider {
-    static var previews: some View {
-        // Preview would need mock data
-        Text("SimilarityPhotoDetailView Preview")
-    }
-}
-#endif

@@ -7,8 +7,6 @@ struct SimilaritySectionsView: View {
     @State private var chosenSection: AICleanServiceSection?
     @State private var chosenImageIndex: Int = 0
     
-    // ВРЕМЕННОЕ РЕШЕНИЕ: В идеале isSelectionMode должен быть @Published в SimilaritySectionsViewModel
-    // Если ViewModel уже имеет isSelectionMode, удалите эту строку и замените viewState.isSelectionMode на isSelectionMode.
     @State private var isLocalSelectionMode: Bool = false
     
     private let galleryColumns: [GridItem] = [
@@ -26,22 +24,20 @@ struct SimilaritySectionsView: View {
                 HStack(spacing: 16) {
                     // Кнопка Dismiss / Cancel
                     Button {
-                        // Если в режиме выбора, то это Cancel
-                        if isLocalSelectionMode { // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode, если оно есть в ViewModel
+                        if isLocalSelectionMode {
                             withAnimation(.easeInOut) {
                                 viewState.deselectAll()
-                                isLocalSelectionMode = false // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode, если оно есть в ViewModel
+                                isLocalSelectionMode = false
                             }
                         } else {
-                            // Иначе - закрываем View
                             viewDismiss()
                         }
                     } label: {
-                        let imageName = isLocalSelectionMode ? "xmark" : "xmark.circle.fill" // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+                        let imageName = isLocalSelectionMode ? "xmark" : "xmark.circle.fill"
                         Image(systemName: imageName)
-                            .font(.system(size: isLocalSelectionMode ? 18 : 28, weight: isLocalSelectionMode ? .semibold : .regular)) // Уменьшаем размер иконки "Cancel"
+                            .font(.system(size: isLocalSelectionMode ? 18 : 28, weight: isLocalSelectionMode ? .semibold : .regular))
                             .foregroundColor(CMColor.secondaryText)
-                            .animation(.easeInOut, value: isLocalSelectionMode) // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+                            .animation(.easeInOut, value: isLocalSelectionMode)
                     }
 
                     Spacer()
@@ -54,21 +50,19 @@ struct SimilaritySectionsView: View {
 
                     // Кнопка Select / Done
                     Button {
-                        if isLocalSelectionMode { // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
-                            // Если уже в режиме выбора и есть выделенные элементы, то это "Done" или просто неактивная кнопка.
-                            // Для простоты, оставим ее для входа в режим выбора / или выхода
+                        if isLocalSelectionMode {
                             withAnimation(.easeInOut) {
                                 viewState.deselectAll()
-                                isLocalSelectionMode = false // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+                                isLocalSelectionMode = false
                             }
                         } else {
-                            // Вход в режим выбора
                             withAnimation(.easeInOut) {
-                                isLocalSelectionMode = true // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+                                isLocalSelectionMode = true
+                                viewState.isSelectionMode = true // Синхронизация с VM
                             }
                         }
                     } label: {
-                        Text(isLocalSelectionMode ? "Cancel" : "Select") // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+                        Text(isLocalSelectionMode ? "Cancel" : "Select")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(CMColor.primary)
                     }
@@ -81,8 +75,9 @@ struct SimilaritySectionsView: View {
                 // MARK: - Scrollable Content
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVStack(spacing: 24) {
-                        ForEach(viewState.sections.indices, id: \.self) { index in
-                            createSectionView(for: viewState.sections[index])
+                        // ИСПРАВЛЕНО: ИСПОЛЬЗУЕМ САМ ОБЪЕКТ SECTION В КАЧЕСТВЕ ID
+                        ForEach(viewState.sections, id: \.self) { section in
+                            createSectionView(for: section)
                         }
                     }
                     .padding(12)
@@ -99,7 +94,13 @@ struct SimilaritySectionsView: View {
                 if viewState.hasSelectedItems {
                     Button {
                         withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                            viewState.deleteSelected()
+                            viewState.deleteSelected { success in
+                                if success {
+                                    if self.viewState.sections.isEmpty {
+                                        self.viewDismiss()
+                                    }
+                                }
+                            }
                         }
                     } label: {
                         HStack(spacing: 8) {
@@ -171,7 +172,7 @@ struct SimilaritySectionsView: View {
                 Spacer()
                 
                 // Кнопка Select all / Deselect all внутри секции
-                if isLocalSelectionMode { // << Активируем кнопку только в режиме выбора
+                if isLocalSelectionMode {
                     Button {
                         withAnimation(.easeInOut) {
                             if viewState.isAllSelectedInSection(section) {
@@ -200,10 +201,15 @@ struct SimilaritySectionsView: View {
                 let remainingModels = viewState.type == .duplicates || viewState.type == .similar ? Array(section.models.suffix(from: 1)) : section.models
                 
                 LazyVGrid(columns: galleryColumns, spacing: 8) {
-                    ForEach(remainingModels.indices, id: \.self) { index in
-                        let model = remainingModels[index]
-                        let actualIndex = (viewState.type == .duplicates || viewState.type == .similar) ? index + 1 : index
+                    // ИСПРАВЛЕНО: ИСПОЛЬЗУЕМ САМ ОБЪЕКТ MODEL В КАЧЕСТВЕ ID
+                    ForEach(remainingModels) { model in
+                        let actualIndex = (viewState.type == .duplicates || viewState.type == .similar) ?
+                            section.models.firstIndex(of: model) ?? 0 : // Найдем правильный индекс в полном списке
+                            remainingModels.firstIndex(of: model) ?? 0
+                        
                         createGalleryItemView(for: model, section: section, index: actualIndex)
+                            // ЯВНОЕ НАЗНАЧЕНИЕ ID ДЛЯ ИЗБЕЖАНИЯ REUSE ПРОБЛЕМ
+                            .id(model.id)
                     }
                 }
             }
@@ -268,16 +274,16 @@ struct SimilaritySectionsView: View {
                     .padding(8)
             }
             .frame(width: itemSize, height: itemSize, alignment: .topTrailing)
-            // ИЗМЕНЕНИЕ: Теперь показываем чекбокс только если isSelected ИЛИ в режиме выбора
-            .opacity(isSelected || isLocalSelectionMode ? 1.0 : 0.0) // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+            .opacity(isSelected || isLocalSelectionMode ? 1.0 : 0.0)
             .animation(.easeInOut(duration: 0.2), value: isSelected)
-            .animation(.easeInOut(duration: 0.2), value: isLocalSelectionMode) // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+            .animation(.easeInOut(duration: 0.2), value: isLocalSelectionMode)
         }
         .frame(width: itemSize, height: itemSize)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius))
+        // ИСПРАВЛЕНО: ДОБАВЛЕНИЕ ЯВНОГО СТАБИЛЬНОГО ID
+        .id(model.id)
         .onTapGesture {
-            // ИЗМЕНЕНИЕ: Одиночный тап в режиме выбора включает/выключает выделение
-            if isLocalSelectionMode { // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+            if isLocalSelectionMode {
                 viewState.toggleSelection(for: model)
             } else {
                 chosenImageIndex = index
@@ -285,9 +291,9 @@ struct SimilaritySectionsView: View {
             }
         }
         .onLongPressGesture {
-            // ИЗМЕНЕНИЕ: Долгое нажатие активирует режим выбора И выделяет элемент
             withAnimation(.easeInOut(duration: 0.2)) {
-                isLocalSelectionMode = true // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+                isLocalSelectionMode = true
+                viewState.isSelectionMode = true
                 viewState.toggleSelection(for: model)
             }
         }
@@ -338,17 +344,17 @@ struct SimilaritySectionsView: View {
                     .padding(4)
             }
             .frame(width: itemSize, height: itemSize, alignment: .topTrailing)
-            // ИЗМЕНЕНИЕ: Теперь показываем чекбокс только если isSelected ИЛИ в режиме выбора
-            .opacity(isSelected || isLocalSelectionMode ? 1.0 : 0.0) // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+            .opacity(isSelected || isLocalSelectionMode ? 1.0 : 0.0)
             .animation(.easeInOut(duration: 0.2), value: isSelected)
-            .animation(.easeInOut(duration: 0.2), value: isLocalSelectionMode) // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+            .animation(.easeInOut(duration: 0.2), value: isLocalSelectionMode)
         }
         .frame(width: itemSize, height: itemSize)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius))
         .clipped()
+        // ИСПРАВЛЕНО: ДОБАВЛЕНИЕ ЯВНОГО СТАБИЛЬНОГО ID
+        .id(model.id)
         .onTapGesture {
-            // ИЗМЕНЕНИЕ: Одиночный тап в режиме выбора включает/выключает выделение
-            if isLocalSelectionMode { // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+            if isLocalSelectionMode {
                 viewState.toggleSelection(for: model)
             } else {
                 chosenImageIndex = index
@@ -356,16 +362,17 @@ struct SimilaritySectionsView: View {
             }
         }
         .onLongPressGesture {
-            // ИЗМЕНЕНИЕ: Долгое нажатие активирует режим выбора И выделяет элемент
             withAnimation(.easeInOut(duration: 0.2)) {
-                isLocalSelectionMode = true // << ИСПОЛЬЗУЙТЕ viewState.isSelectionMode
+                isLocalSelectionMode = true
+                viewState.isSelectionMode = true
                 viewState.toggleSelection(for: model)
             }
         }
     }
 }
 
-// MARK: - Checkbox View (Остается без изменений)
+
+// MARK: - Checkbox View
 struct CheckboxView: View {
     let isSelected: Bool
     

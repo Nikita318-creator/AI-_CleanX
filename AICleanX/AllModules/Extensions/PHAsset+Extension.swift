@@ -23,26 +23,6 @@ extension PHAsset {
         return Double(bytesOnDisk) / Double(1048576)
     }
 
-    func getImage(
-        imageManager: PHImageManager,
-        size: CGSize = PHImageManagerMaximumSize,
-        completion: @escaping (UIImage?) -> Void
-    ) {
-        let options = PHImageRequestOptions()
-        options.deliveryMode = .opportunistic
-        options.resizeMode = .exact
-        options.isNetworkAccessAllowed = true
-
-        imageManager.requestImage(
-            for: self,
-            targetSize: size,
-            contentMode: .aspectFit,
-            options: options
-        ) { image, _ in
-            completion(image)
-        }
-    }
-
     func getVideo(imageManager: PHImageManager, completion: @escaping (AVPlayerItem?) -> Void) {
         let requestOptions = PHVideoRequestOptions()
         requestOptions.deliveryMode = .highQualityFormat

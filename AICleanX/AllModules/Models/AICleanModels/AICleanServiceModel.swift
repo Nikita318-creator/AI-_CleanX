@@ -1,19 +1,22 @@
 import Photos
 import UIKit
 
-class AICleanServiceModel: Hashable {
+class AICleanServiceModel: Hashable, Identifiable {
     enum CustomError: Error {
         case noSelf
     }
 
+    // 1. ИСПРАВЛЕНО: Сравнение по стабильному строковому ID
     static func == (lhs: AICleanServiceModel, rhs: AICleanServiceModel) -> Bool {
-        lhs.asset === rhs.asset
+        return lhs.asset.localIdentifier == rhs.asset.localIdentifier
     }
 
+    // 2. ИСПРАВЛЕНО: Хэширование по стабильному строковому ID
     func hash(into hasher: inout Hasher) {
-        hasher.combine(asset)
+        hasher.combine(asset.localIdentifier)
     }
 
+    let id: String // Используем let, так как localIdentifier не меняется
     let imageManager: PHCachingImageManager
     let asset: PHAsset
     let index: Int
@@ -24,6 +27,8 @@ class AICleanServiceModel: Hashable {
         self.imageManager = imageManager
         self.asset = asset
         self.index = index
+        // 3. ДОБАВЛЕНО: Инициализируем id стабильным значением
+        self.id = asset.localIdentifier
     }
 
     func getImage(size: CGSize, completion: @escaping (UIImage?) -> Void) {

@@ -634,8 +634,12 @@ private extension AIMainCleanService {
         let requestOptions = PHImageRequestOptions()
         requestOptions.deliveryMode = delivery
         requestOptions.resizeMode = resize
-        let targetSize = CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
-        cachingImageManager.requestImage(for: asset, targetSize: targetSize, contentMode: .aspectFit, options: requestOptions) { image, _ in
+        cachingImageManager.requestImage(
+            for: asset,
+            targetSize: CGSize(width: 450, height: 450),
+            contentMode: .aspectFit,
+            options: requestOptions
+        ) { image, _ in
             completion(image)
         }
     }
