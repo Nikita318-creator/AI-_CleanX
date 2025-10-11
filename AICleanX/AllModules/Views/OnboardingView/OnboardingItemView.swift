@@ -57,9 +57,11 @@ struct OnboardingItemView: View {
                     Button(action: {
                         if screen.isLastScreen {
                             onboardingShown = true
+                            AnalyticService.shared.logEvent(name: "paywall shown", properties: ["":""])
                         } else {
                             withAnimation {
                                 currentPage += 1
+                                AnalyticService.shared.logEvent(name: "onbording shown", properties: ["currentPage":"\(currentPage)"])
                             }
                         }
                     }) {

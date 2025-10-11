@@ -285,6 +285,8 @@ struct SafeStorageView: View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
             ForEach(categories) { category in
                 Button(action: {
+                    AnalyticService.shared.logEvent(name: "safeFolder Card tapped", properties: ["type":"\(category.title)"])
+
                     // Обработка нажатия
                     if category.title == "Docs" {
                         showDocumentsView = true

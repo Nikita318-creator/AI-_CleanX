@@ -13,7 +13,11 @@ final class AICleanSpaceViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var mainScanState: ScanningState = .idle
     @Published var scanningProgressValue: Double = 0.0
-    @Published var currentSelectedTab: TabType = .clean
+    @Published var currentSelectedTab: TabType = .clean {
+        didSet {
+            AnalyticService.shared.logEvent(name: "currentSelectedTab: \(currentSelectedTab)", properties: ["":""])
+        }
+    }
     
     // MARK: - Media Cleaner Properties
     @Published var progress: AICleanServiceProgress = AICleanServiceProgress(type: .image(.similar), index: 0, value: 0, isFinished: false)

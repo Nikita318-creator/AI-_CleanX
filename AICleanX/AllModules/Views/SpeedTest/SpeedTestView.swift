@@ -151,6 +151,7 @@ struct SpeedTestView: View {
         Group {
             if !speedometerViewModel.isTestInProgress && speedometerViewModel.testPhase == .idle {
                 Button(action: {
+                    AnalyticService.shared.logEvent(name: "startRealSpeedTest", properties: ["":""])
                     speedometerViewModel.startRealSpeedTest()
                     
                     if !ApphudPurchaseService.shared.hasActiveSubscription {

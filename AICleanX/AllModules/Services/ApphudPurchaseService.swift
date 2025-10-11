@@ -65,8 +65,8 @@ final class ApphudPurchaseService {
 
     /// Checks if the user has an active subscription.
     var hasActiveSubscription: Bool {
-        true // todo test111
-//        Apphud.hasActiveSubscription()
+//        false
+        AnalyticService.shared.environment == .dev ? true : Apphud.hasActiveSubscription()
     }
     
     static var shared = ApphudPurchaseService()

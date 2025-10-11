@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		100EA38E2E9AB872004B1EFB /* Amplitude in Frameworks */ = {isa = PBXBuildFile; productRef = 100EA38D2E9AB872004B1EFB /* Amplitude */; };
 		101386982E94301700507C44 /* ApphudSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 101386972E94301700507C44 /* ApphudSDK */; };
 /* End PBXBuildFile section */
 
@@ -40,6 +41,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				100EA38E2E9AB872004B1EFB /* Amplitude in Frameworks */,
 				101386982E94301700507C44 /* ApphudSDK in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -84,6 +86,7 @@
 			name = AICleanX;
 			packageProductDependencies = (
 				101386972E94301700507C44 /* ApphudSDK */,
+				100EA38D2E9AB872004B1EFB /* Amplitude */,
 			);
 			productName = AICleanX;
 			productReference = 1013826E2E942F4E00507C44 /* AICleanX.app */;
@@ -115,6 +118,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				101386962E94301700507C44 /* XCRemoteSwiftPackageReference "ApphudSDK" */,
+				100EA38C2E9AB872004B1EFB /* XCRemoteSwiftPackageReference "Amplitude-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 1013826F2E942F4E00507C44 /* Products */;
@@ -368,6 +372,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		100EA38C2E9AB872004B1EFB /* XCRemoteSwiftPackageReference "Amplitude-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/amplitude/Amplitude-iOS.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		101386962E94301700507C44 /* XCRemoteSwiftPackageReference "ApphudSDK" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apphud/ApphudSDK";
@@ -379,6 +391,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		100EA38D2E9AB872004B1EFB /* Amplitude */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 100EA38C2E9AB872004B1EFB /* XCRemoteSwiftPackageReference "Amplitude-iOS" */;
+			productName = Amplitude;
+		};
 		101386972E94301700507C44 /* ApphudSDK */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 101386962E94301700507C44 /* XCRemoteSwiftPackageReference "ApphudSDK" */;
