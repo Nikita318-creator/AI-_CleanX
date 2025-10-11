@@ -109,6 +109,10 @@ struct PaywallView: View {
                     }
                 }
             } // Конец ScrollViewReader
+            if viewModel.isLoading {
+                ProgressOverlayView()
+                    .transition(.opacity)
+            }
         } // Конец ZStack
     }
 }

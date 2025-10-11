@@ -19,6 +19,8 @@ final class PaywallViewModel: ObservableObject {
     @Published var monthPrice: String = "N/A" // NEW
     @Published var monthPricePerWeek: String = "N/A" // NEW
     
+    @Published var isLoading: Bool = false
+
     // MARK: - Initialization
     
     init(isPresented: Binding<Bool>) {
@@ -34,29 +36,45 @@ final class PaywallViewModel: ObservableObject {
     /// Handles the purchase button tap action.
     @MainActor
     func continueTapped(with plan: PurchaseServiceProduct) {
+        self.isLoading = true
         ApphudPurchaseService.shared.purchase(plan: plan) { [weak self] result in
             guard let self = self else { return }
             
+            // 2. Снимаем флаг загрузки в любом случае
+            self.isLoading = false
+            
             if case .failure(let error) = result {
+                AnalyticService.shared.logEvent(name: "paywall failure", properties: ["Error":"\(error?.localizedDescription ?? "Unknown error")"])
                 print("Error during purchase: \(error?.localizedDescription ?? "Unknown error")")
                 return
             }
             
+            AnalyticService.shared.logEvent(name: "PURCHASED!!!", properties: ["plan":"\(plan.rawValue)"])
+
+            // 3. Дизмисс Paywall только при успехе
             self.dismissPaywall()
         }
     }
     
     @MainActor
     func restoreTapped() {
+        self.isLoading = true
+
         ApphudPurchaseService.shared.restore() { [weak self] result in
             guard let self = self else { return }
             
+            // 2. Снимаем флаг загрузки в любом случае
+            self.isLoading = false
+            
             if case .failure(let error) = result {
+                AnalyticService.shared.logEvent(name: "paywall failure", properties: ["Error":"Error during restore: \(error?.localizedDescription ?? "Unknown error")"])
                 print("Error during restore: \(error?.localizedDescription ?? "Unknown error")")
-//                // todo test111 показать алерт?
                 return
             }
             
+            AnalyticService.shared.logEvent(name: "restore PURCHASes", properties: ["":""])
+
+            // 3. Дизмисс Paywall только при успехе
             self.dismissPaywall()
         }
     }

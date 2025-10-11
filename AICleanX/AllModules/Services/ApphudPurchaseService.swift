@@ -5,7 +5,6 @@ import Combine
 // MARK: - App Constants and Types
 
 /// Defines the supported subscription product types.
-// todo PRO
 enum PurchaseServiceProduct: String, CaseIterable {
     case week = "Nat.AICleanX.com.AICleanX.week"
     case month = "Nat.AICleanX.com.AICleanX.Month"

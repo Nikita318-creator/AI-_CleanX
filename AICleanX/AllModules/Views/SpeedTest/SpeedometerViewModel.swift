@@ -304,7 +304,6 @@ final class SpeedometerViewModel: ObservableObject {
     
     /// Update IP info (placeholder)
     func updateIP() {
-        // TODO% - In a real app, this would be an API request to get IP
         self.ip = "192.168.1.1"
     }
     
