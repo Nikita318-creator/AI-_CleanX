@@ -5,7 +5,7 @@ struct PaywallView: View {
     @StateObject private var viewModel: PaywallViewModel
     
     // Состояние для выбранного плана (по умолчанию Месяц как "Лучшее предложение")
-    @State private var selectedPlan: PurchaseServiceProduct = .month
+    @State private var selectedPlan: PurchaseServiceProduct = ConfigService.shared.isProSubs ? .monthPRO : .month
     
     // Состояние для отображения кнопки закрытия (используем для opacity)
     @State private var closeButtonOpacity: Double = 0.0
@@ -83,7 +83,11 @@ struct PaywallView: View {
                     // --- Нижняя часть: Кнопка Продолжить и ссылки (Не скроллируются) ---
                     VStack(spacing: 0) {
                         PaywallContinueButton(action: {
-                            viewModel.continueTapped(with: selectedPlan == .month ? .month : .week)
+                            if ConfigService.shared.isProSubs {
+                                viewModel.continueTapped(with: selectedPlan == .monthPRO ? .monthPRO : .weekPRO)
+                            } else {
+                                viewModel.continueTapped(with: selectedPlan == .month ? .month : .week)
+                            }
                         })
                         .padding(.horizontal, 30)
                         .padding(.top, 10)
@@ -185,7 +189,7 @@ struct SubscriptionSelectorView: View {
                 title: "Weekly",
                 price: viewModel.weekPrice,
                 subtitle: "",
-                plan: .week,
+                plan: ConfigService.shared.isProSubs ? .weekPRO : .week,
                 selectedPlan: $selectedPlan,
                 showBadge: false
             )
@@ -195,7 +199,7 @@ struct SubscriptionSelectorView: View {
                 title: "Monthly",
                 price: viewModel.monthPrice,
                 subtitle: "(\(viewModel.monthPricePerWeek) / week)",
-                plan: .month,
+                plan: ConfigService.shared.isProSubs ? .monthPRO : .month,
                 selectedPlan: $selectedPlan,
                 showBadge: true
             )

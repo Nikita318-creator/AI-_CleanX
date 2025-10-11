@@ -29,6 +29,17 @@ final class PaywallViewModel: ObservableObject {
         Task {
             await updatePrices()
         }
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(updatePricesOnPayWall),
+            name: .updatePricesOnPayWallKey,
+            object: nil
+        )
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
     // MARK: - Public Actions
@@ -94,14 +105,32 @@ final class PaywallViewModel: ObservableObject {
     // MARK: - Private Methods
     
     private func updatePrices() async {
-        await MainActor.run {
-            self.weekPrice = ApphudPurchaseService.shared.localizedPrice(for: .week) ?? "N/A"
-            self.monthPrice = ApphudPurchaseService.shared.localizedPrice(for: .month) ?? "N/A"
-            self.monthPricePerWeek = ApphudPurchaseService.shared.perWeekPrice(for: .month) ?? "N/A"
+        if ConfigService.shared.isProSubs {
+            await MainActor.run {
+                self.weekPrice = ApphudPurchaseService.shared.localizedPrice(for: .weekPRO) ?? "N/A"
+                self.monthPrice = ApphudPurchaseService.shared.localizedPrice(for: .monthPRO) ?? "N/A"
+                self.monthPricePerWeek = ApphudPurchaseService.shared.perWeekPrice(for: .monthPRO) ?? "N/A"
+            }
+        } else {
+            await MainActor.run {
+                self.weekPrice = ApphudPurchaseService.shared.localizedPrice(for: .week) ?? "N/A"
+                self.monthPrice = ApphudPurchaseService.shared.localizedPrice(for: .month) ?? "N/A"
+                self.monthPricePerWeek = ApphudPurchaseService.shared.perWeekPrice(for: .month) ?? "N/A"
+            }
         }
     }
     
     private func dismissPaywall() {
         isPresentedBinding.wrappedValue = false
     }
+    
+    @objc private func updatePricesOnPayWall() {
+        Task {
+            await updatePrices()
+        }
+    }
+}
+
+extension Notification.Name {
+    static let updatePricesOnPayWallKey = Notification.Name("updatePricesOnPayWallKey")
 }

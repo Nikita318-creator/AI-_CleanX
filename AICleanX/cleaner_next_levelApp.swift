@@ -16,6 +16,7 @@ struct cleaner_next_levelApp: App {
         Apphud.setDeviceIdentifiers(idfa: nil, idfv: idfv)
         
         _ = ApphudPurchaseService.shared // после старта работы так как там фетч внутри
+        _ = ConfigService.shared
         _ = AnalyticService.shared
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {

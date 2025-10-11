@@ -8,6 +8,10 @@ import Combine
 enum PurchaseServiceProduct: String, CaseIterable {
     case week = "Nat.AICleanX.com.AICleanX.week"
     case month = "Nat.AICleanX.com.AICleanX.Month"
+    
+    // PRO:
+    case weekPRO = "Nat.AICleanX.com.AICleanX.weekPRO"
+    case monthPRO = "Nat.AICleanX.com.AICleanX.monthPRO_"
 }
 
 /// Defines the outcome of a purchase or restore operation.
@@ -84,13 +88,8 @@ final class ApphudPurchaseService {
     /// Purchases a subscription plan.
     @MainActor
     func purchase(plan: PurchaseServiceProduct, completion: @escaping PurchaseCompletion) {
-        guard let productId = getProductId(for: plan) else {
-            completion(.failure(PurchaseError.noProductsFound))
-            return
-        }
-
-        guard let product = getProduct(with: productId) else {
-            completion(.failure(PurchaseError.productNotFound(productId)))
+        guard let product = getProduct(with: plan.rawValue) else {
+            completion(.failure(PurchaseError.productNotFound(plan.rawValue)))
             return
         }
 
@@ -136,13 +135,6 @@ final class ApphudPurchaseService {
             return nil
         }
         
-        // Вычисляем цену только для МЕСЯЧНОЙ подписки, как вы просили.
-        // Для других типов подписок, возможно, лучше создать отдельную функцию или вернуть nil.
-        guard case .month = product else {
-            // Если продукт не месяц, просто возвращаем дефолтное значение
-            return nil
-        }
-        
         // Используем среднее количество дней в месяце (365.25 / 12)
         let daysInMonth: Double = 30.4375
         let daysInWeek: Double = 7.0
@@ -158,21 +150,6 @@ final class ApphudPurchaseService {
     }
 
     // MARK: - Private Methods
-
-    private func getProductId(for plan: PurchaseServiceProduct) -> String? {
-        // This function now needs to be adapted to the new `PurchaseServiceProduct` enum.
-        // The `SubscriptionPlan` enum is no longer sufficient to map all products.
-        // You will need to update the call site to pass in `PurchaseServiceProduct` directly.
-        // Assuming there is a way to map old plans to new products:
-        switch plan {
-        case .week:
-            return PurchaseServiceProduct.week.rawValue
-        case .month:
-            // This mapping is now ambiguous. Please update the `SubscriptionPlan` or the calling code.
-            // For now, let's assume it's for 3-month plan.
-            return PurchaseServiceProduct.month.rawValue
-        }
-    }
 
     private func getProduct(with id: String) -> ApphudProduct? {
         return availableProducts.first(where: { $0.productId == id })
@@ -223,6 +200,10 @@ final class ApphudPurchaseService {
         
         self.availableProducts = paywall.products
         print("Apphud: Fetched products with IDs: \(self.availableProducts.map { $0.productId })")
-        print()
+        NotificationCenter.default.post(
+            name: .updatePricesOnPayWallKey,
+            object: nil,
+            userInfo: nil
+        )
     }
 }
