@@ -1,5 +1,4 @@
 import SwiftUI
-import Foundation
 
 struct SpeedTestView: View {
     @StateObject private var speedometerViewModel = SpeedometerViewModel()
@@ -157,6 +156,10 @@ struct SpeedTestView: View {
                     if !ApphudPurchaseService.shared.hasActiveSubscription {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [self] in
                             isPaywallPresented = true
+                        }
+                    } else {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            MainHelper.shared.requestReviewIfNeededFromSpeedTest()
                         }
                     }
                 }) {

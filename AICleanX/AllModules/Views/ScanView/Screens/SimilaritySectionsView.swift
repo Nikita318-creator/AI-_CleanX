@@ -96,6 +96,11 @@ struct SimilaritySectionsView: View {
                         withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                             viewState.deleteSelected { success in
                                 if success {
+                                    if MainHelper.shared.deletedItemsCount > 1 {
+                                        MainHelper.shared.requestReviewIfNeededFromDeleteItems()
+                                    }
+                                    MainHelper.shared.deletedItemsCount += 1
+                                    
                                     if self.viewState.sections.isEmpty {
                                         self.viewDismiss()
                                     }

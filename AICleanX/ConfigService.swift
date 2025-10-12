@@ -7,7 +7,7 @@ struct Config: Codable {
 final class ConfigService {
     static let shared = ConfigService()
     
-    private(set) var isProSubs: Bool = true
+    private(set) var isProSubs: Bool = false /// ??? true or false by default ?
 
     private let configURL = URL(string: "https://raw.githubusercontent.com/Nikita318-creator/analitics-data/main/AICleanX1.1")
 
