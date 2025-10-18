@@ -11,7 +11,6 @@ struct AICleanerIncompleteContactsView: View {
     @State private var isSelectionMode = false
     @State private var showDeleteAlert = false
     
-    // Переименованные переменные для навигации
     @State private var contactToViewDetails: CNContact?
     @State private var showDetailSheet = false
 
@@ -21,13 +20,14 @@ struct AICleanerIncompleteContactsView: View {
             let scalingFactor = geometry.size.height / 844
             
             ZStack {
-                CMColor.background.ignoresSafeArea()
+                CMColor.background.ignoresSafeArea(.all, edges: .all)
                 
                 VStack(spacing: 0) {
                     
                     // --- Header: Classic Back Button and Updated Texts ---
                     headerView(scalingFactor: scalingFactor)
                         .padding(.bottom, 16 * scalingFactor)
+                        .background(CMColor.background)
                     
                     // --- Search Bar (Updated text) ---
                     searchBar(scalingFactor: scalingFactor)
@@ -44,13 +44,13 @@ struct AICleanerIncompleteContactsView: View {
                     // --- Content: Contacts Grid (Two Square Cells Per Row) ---
                     if filteredIncompleteContacts.isEmpty && !searchText.isEmpty {
                         Spacer()
-                        Text("No results for \"\(searchText)\" in incomplete contacts.") // Updated text
+                        Text("No results found for \"\(searchText)\".") // English
                             .font(.system(size: 18 * scalingFactor, weight: .medium))
                             .foregroundColor(CMColor.secondaryText)
                         Spacer()
                     } else if filteredIncompleteContacts.isEmpty {
                         Spacer()
-                        Text("All contacts seem complete.") // Updated text
+                        Text("All contacts are complete.") // English
                             .font(.system(size: 18 * scalingFactor, weight: .medium))
                             .foregroundColor(CMColor.secondaryText)
                         Spacer()
@@ -58,23 +58,23 @@ struct AICleanerIncompleteContactsView: View {
                         contactsGridView(scalingFactor: scalingFactor)
                     }
                 }
+                .padding(.top, geometry.safeAreaInsets.top > 0 ? 0 : 20 * scalingFactor) // SAFE AREA FIX
             }
         }
         .navigationBarHidden(true)
-        // Использование .sheet для модального представления карточки контакта
         .sheet(isPresented: $showDetailSheet) {
             if let contact = contactToViewDetails {
-                // ПРЕДПОЛАГАЕТСЯ, ЧТО AICleanerContactCardPushView СУЩЕСТВУЕТ В ДРУГОМ МЕСТЕ
+                // Мы передаем НЕПОЛНЫЙ контакт в загрузчик
                 AICleanerContactCardPushView(contact: contact)
             }
         }
-        .alert("Remove Unfinished Entries", isPresented: $showDeleteAlert) { // Updated text
-            Button("Erase Selection", role: .destructive) { // Updated text
+        .alert("Confirm Deletion", isPresented: $showDeleteAlert) { // English
+            Button("Delete", role: .destructive) { // English
                 deleteSelectedContacts()
             }
-            Button("Cancel Action", role: .cancel) { } // Updated text
+            Button("Cancel", role: .cancel) { } // English
         } message: {
-            Text("Confirm the permanent deletion of \(selectedContacts.count) incomplete record\(selectedContacts.count == 1 ? "" : "s")? This is irreversible.") // Updated text
+            Text("Are you sure you want to permanently delete \(selectedContacts.count) incomplete contacts? This action cannot be undone.") // English
         }
     }
     
@@ -92,11 +92,11 @@ struct AICleanerIncompleteContactsView: View {
                 }
             }) {
                 HStack(spacing: 4 * scalingFactor) {
-                    Image(systemName: isSelectionMode ? "xmark" : "chevron.left") // Classic iOS back arrow/Close icon
+                    Image(systemName: isSelectionMode ? "xmark" : "chevron.left")
                         .font(.system(size: 24 * scalingFactor, weight: .semibold))
                         .foregroundColor(CMColor.primary)
                     
-                    Text(isSelectionMode ? "Dismiss" : "Return") // Updated text
+                    Text(isSelectionMode ? "Cancel" : "Back") // English
                         .font(.system(size: 18 * scalingFactor, weight: .semibold))
                         .foregroundColor(CMColor.primary)
                 }
@@ -105,16 +105,16 @@ struct AICleanerIncompleteContactsView: View {
             Spacer()
             
             VStack(spacing: 4 * scalingFactor) {
-                Text(isSelectionMode ? "Bulk Removal" : "Incomplete Entries") // Updated text
+                Text(isSelectionMode ? "Bulk Delete" : "Incomplete Contacts") // English
                     .font(.system(size: 24 * scalingFactor, weight: .bold))
                     .foregroundColor(CMColor.primaryText)
                 
                 if isSelectionMode && !selectedContacts.isEmpty {
-                    Text("\(selectedContacts.count) records chosen") // Updated text
+                    Text("\(selectedContacts.count) contacts selected") // English
                         .font(.system(size: 14 * scalingFactor, weight: .regular))
                         .foregroundColor(CMColor.secondaryText)
                 } else {
-                    Text("Found \(filteredIncompleteContacts.count) incomplete contacts") // Updated text
+                    Text("Found \(filteredIncompleteContacts.count) incomplete contacts") // English
                         .font(.system(size: 14 * scalingFactor, weight: .regular))
                         .foregroundColor(CMColor.secondaryText)
                 }
@@ -134,14 +134,13 @@ struct AICleanerIncompleteContactsView: View {
                 }
             }) {
                 Text(isSelectionMode ?
-                     (selectedContacts.isEmpty ? "Select All" : "Clear All") : // Updated text
-                        "Bulk Edit") // Updated text
+                     (selectedContacts.isEmpty ? "Select All" : "Deselect All") : // English
+                        "Select") // English
                     .font(.system(size: 18 * scalingFactor, weight: .semibold))
                     .foregroundColor(CMColor.primary)
             }
         }
         .padding(.horizontal, 20 * scalingFactor)
-        .padding(.top, 16 * scalingFactor)
         .padding(.bottom, 8 * scalingFactor)
     }
     
@@ -150,7 +149,7 @@ struct AICleanerIncompleteContactsView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(CMColor.secondaryText)
             
-            TextField("Search name or number...", text: $searchText) // Updated text
+            TextField("Search name, number or email...", text: $searchText) // English
                 .textFieldStyle(PlainTextFieldStyle())
             
             if !searchText.isEmpty {
@@ -174,7 +173,7 @@ struct AICleanerIncompleteContactsView: View {
                 Image(systemName: "trash.fill")
                     .font(.system(size: 18 * scalingFactor, weight: .heavy))
                 
-                Text("Delete \(selectedContacts.count) record\(selectedContacts.count == 1 ? "" : "s")") // Updated text
+                Text("Delete \(selectedContacts.count) contact\(selectedContacts.count == 1 ? "" : "s")") // English
                     .font(.system(size: 18 * scalingFactor, weight: .heavy))
             }
             .foregroundColor(.white)
@@ -186,6 +185,7 @@ struct AICleanerIncompleteContactsView: View {
     }
     
     private func contactsGridView(scalingFactor: CGFloat) -> some View {
+        // [Existing Grid View code]
         ScrollView {
             let columns = [
                 GridItem(.flexible(), spacing: 16 * scalingFactor),
@@ -194,7 +194,6 @@ struct AICleanerIncompleteContactsView: View {
             
             LazyVGrid(columns: columns, spacing: 16 * scalingFactor) {
                 ForEach(filteredIncompleteContacts, id: \.identifier) { contact in
-                    // Используем локально определенное вью для квадратной ячейки
                     IncompleteContactSquareCardView(
                         contact: contact,
                         isSelectionMode: isSelectionMode,
@@ -230,7 +229,7 @@ struct AICleanerIncompleteContactsView: View {
             if !name.isEmpty { return name }
             if let phone = contact.phoneNumbers.first?.value.stringValue { return phone }
             if let email = contact.emailAddresses.first?.value as? String { return email }
-            return "No Name/Data" // Updated text
+            return "No Name" // English
         }
 
         private var avatarText: String {
@@ -241,14 +240,14 @@ struct AICleanerIncompleteContactsView: View {
         
         private var missingInfo: String {
             var parts: [String] = []
-            if contact.givenName.isEmpty && contact.familyName.isEmpty { parts.append("Name") }
-            if contact.phoneNumbers.isEmpty { parts.append("Phone") }
-            if contact.emailAddresses.isEmpty { parts.append("Email") }
+            if contact.givenName.isEmpty && contact.familyName.isEmpty { parts.append("Name") } // English
+            if contact.phoneNumbers.isEmpty { parts.append("Phone") } // English
+            if contact.emailAddresses.isEmpty { parts.append("Email") } // English
             
-            if parts.count == 3 { return "No info" }
-            if parts.count == 1 { return "\(parts.first!) missing" }
-            if parts.count == 2 { return "\(parts.joined(separator: " & ")) missing" }
-            return "Incomplete"
+            if parts.count == 3 { return "No Info" } // English
+            if parts.count == 1 { return parts.first! } // Simplified
+            if parts.count == 2 { return parts.joined(separator: " & ") } // Simplified
+            return "Incomplete" // Simplified
         }
 
         var body: some View {
@@ -260,7 +259,7 @@ struct AICleanerIncompleteContactsView: View {
                         HStack {
                             ZStack {
                                 Circle()
-                                    .fill(CMColor.error.opacity(0.15)) // Highlight with error color
+                                    .fill(CMColor.error.opacity(0.15))
                                     .frame(width: 50 * scalingFactor, height: 50 * scalingFactor)
                                 
                                 Text(avatarText)
@@ -302,7 +301,7 @@ struct AICleanerIncompleteContactsView: View {
                             .minimumScaleFactor(0.8)
                         
                         // 3. Secondary info (What's missing)
-                        Text("Missing: \(missingInfo)") // Updated text
+                        Text("Missing: \(missingInfo)") // English
                             .font(.system(size: 12 * scalingFactor, weight: .medium))
                             .foregroundColor(CMColor.error)
                             .lineLimit(1)
@@ -322,8 +321,8 @@ struct AICleanerIncompleteContactsView: View {
         }
     }
     
-    // MARK: - Logic
-    
+    // MARK: - Logic (unchanged)
+    // [Existing logic functions]
     private func toggleContactSelection(_ contactId: String) {
         if selectedContacts.contains(contactId) {
             selectedContacts.remove(contactId)
@@ -352,13 +351,10 @@ struct AICleanerIncompleteContactsView: View {
     
     private var filteredIncompleteContacts: [CNContact] {
         let incomplete = viewModel.systemContacts.filter { contact in
-            // A contact is "incomplete" if it lacks a name AND a phone number AND an email.
-            // OR simply lacks a Name (givenName + familyName) as a common definition of "incomplete"
+            // A contact is "incomplete" if it lacks a name OR phone/email
             let hasName = !contact.givenName.isEmpty || !contact.familyName.isEmpty
             let hasPhoneOrEmail = !contact.phoneNumbers.isEmpty || !contact.emailAddresses.isEmpty
             
-            // Define an incomplete contact as one lacking a name, OR lacking phone/email
-            // Using the simpler definition of a contact that lacks a name OR a number OR an email.
             return !hasName || !hasPhoneOrEmail
         }.sorted {
             let name1 = "\($0.givenName) \($0.familyName)"

@@ -11,63 +11,50 @@ struct AICleanerAllContactsView: View {
     @State private var isSelectionMode = false
     @State private var showDeleteAlert = false
     
-    // Переименованная переменная для навигации, чтобы избежать конфликтов
-    @State private var contactToViewDetails: CNContact?
-    @State private var showDetailSheet = false
     @State private var selectedContactForNavigation: CNContact?
 
     // MARK: - Body
     var body: some View {
-        NavigationView { // ВОЗВРАЩАЕМ NavigationView как корневой элемент
+        NavigationView {
             GeometryReader { geometry in
                 let scalingFactor = geometry.size.height / 844
                 
-                ZStack(alignment: .top) { // Выравниваем ZStack по верхнему краю для правильного позиционирования VStac
+                ZStack(alignment: .top) {
                     CMColor.background.ignoresSafeArea()
                     
                     VStack(spacing: 0) {
                         
-                        // --- Header: Classic Back Button and Updated Texts ---
-                        // Внутри NavigationView Header будет выглядеть как Custom View.
-                        // Если вы хотите, чтобы Header был частью встроенной навигационной панели,
-                        // его нужно будет переделать. Сейчас оставляем как есть, но это может вызвать конфликт с навигацией.
-                        // Для простоты оставим его как пользовательский VStac
                         headerView(scalingFactor: scalingFactor)
                             .padding(.bottom, 16 * scalingFactor)
                         
-                        // --- Search Bar (Updated text) ---
                         searchBar(scalingFactor: scalingFactor)
                             .padding(.horizontal, 20 * scalingFactor)
                             .padding(.bottom, isSelectionMode && !selectedContacts.isEmpty ? 8 * scalingFactor : 24 * scalingFactor)
                         
-                        // --- Mass Delete Button ---
                         if isSelectionMode && !selectedContacts.isEmpty {
                             deleteButton(scalingFactor: scalingFactor)
                                 .padding(.horizontal, 20 * scalingFactor)
                                 .padding(.bottom, 20 * scalingFactor)
                         }
                         
-                        // --- Content: Contacts Grid (Two Square Cells Per Row) ---
                         if filteredSystemContacts.isEmpty && !searchText.isEmpty {
                             Spacer()
-                            Text("No matching entries for \"\(searchText)\"")
+                            Text("No matching records for \"\(searchText)\"")
                                 .font(.system(size: 18 * scalingFactor, weight: .medium))
                                 .foregroundColor(CMColor.secondaryText)
                             Spacer()
                         } else if filteredSystemContacts.isEmpty {
                             Spacer()
-                            Text("Contact list is empty.")
+                            Text("Your contact list is empty.")
                                 .font(.system(size: 18 * scalingFactor, weight: .medium))
                                 .foregroundColor(CMColor.secondaryText)
                             Spacer()
                         } else {
-                            contactsGridView(scalingFactor: scalingFactor) // Тут вложена логика NavigationLink
+                            contactsGridView(scalingFactor: scalingFactor)
                         }
                     }
                 }
             }
-            // Убираем navigationBarHidden(true), чтобы стандартный push-переход работал.
-            // Запускаем скрытый NavigationLink для push-перехода, если выбран контакт.
             .background(
                 NavigationLink(
                     destination: selectedContactForNavigation.map { AICleanerContactCardPushView(contact: $0) },
@@ -81,23 +68,22 @@ struct AICleanerAllContactsView: View {
                 )
                 .hidden()
             )
-            // Добавляем пустой заголовок, чтобы не мешал кастомному headerView
             .navigationTitle("")
             .navigationBarHidden(true)
         }
-        .navigationViewStyle(.stack) // Используем stack style для iOS
+        .navigationViewStyle(.stack)
         .alert("Confirm Deletion", isPresented: $showDeleteAlert) {
             Button("Erase Selection", role: .destructive) {
                 deleteSelectedContacts()
             }
             Button("Keep Items", role: .cancel) { }
         } message: {
-            Text("Confirm that you want to permanently erase \(selectedContacts.count) chosen item\(selectedContacts.count == 1 ? "" : "s")? This action cannot be revoked.")
+            Text("Are you sure you want to permanently erase \(selectedContacts.count) chosen item\(selectedContacts.count == 1 ? "" : "s")? This action cannot be undone.")
         }
     }
 
-    // MARK: - Updated Contacts Grid View
-    // Обновляем contactsGridView, чтобы он устанавливал selectedContactForNavigation
+    // MARK: - Views
+    
     private func contactsGridView(scalingFactor: CGFloat) -> some View {
         ScrollView {
             let columns = [
@@ -107,7 +93,6 @@ struct AICleanerAllContactsView: View {
             
             LazyVGrid(columns: columns, spacing: 16 * scalingFactor) {
                 ForEach(filteredSystemContacts, id: \.identifier) { contact in
-                    // Используем локально определенное вью для квадратной ячейки
                     ContactSquareCardView(
                         contact: contact,
                         isSelectionMode: isSelectionMode,
@@ -117,7 +102,6 @@ struct AICleanerAllContactsView: View {
                             if isSelectionMode {
                                 toggleContactSelection(contact.identifier)
                             } else {
-                                // Устанавливаем состояние для срабатывания NavigationLink
                                 selectedContactForNavigation = contact
                             }
                         }
@@ -129,11 +113,8 @@ struct AICleanerAllContactsView: View {
         }
     }
     
-    // MARK: - Auxiliary Views (Defined locally for compilation safety)
-    
     private func headerView(scalingFactor: CGFloat) -> some View {
         HStack {
-            // CLASSIC BACK BUTTON (Chevron)
             Button(action: {
                 if isSelectionMode {
                     isSelectionMode = false
@@ -143,11 +124,11 @@ struct AICleanerAllContactsView: View {
                 }
             }) {
                 HStack(spacing: 4 * scalingFactor) {
-                    Image(systemName: isSelectionMode ? "xmark" : "chevron.left") // Classic iOS back arrow/Close icon
+                    Image(systemName: isSelectionMode ? "xmark" : "chevron.left")
                         .font(.system(size: 24 * scalingFactor, weight: .semibold))
                         .foregroundColor(CMColor.primary)
                     
-                    Text(isSelectionMode ? "Dismiss" : "Return") // Updated text
+                    Text(isSelectionMode ? "Dismiss" : "Back")
                         .font(.system(size: 18 * scalingFactor, weight: .semibold))
                         .foregroundColor(CMColor.primary)
                 }
@@ -156,12 +137,12 @@ struct AICleanerAllContactsView: View {
             Spacer()
             
             VStack(spacing: 4 * scalingFactor) {
-                Text(isSelectionMode ? "Multi-Selection" : "All Saved Entries") // Updated text
+                Text(isSelectionMode ? "Bulk Actions" : "All Contacts")
                     .font(.system(size: 24 * scalingFactor, weight: .bold))
                     .foregroundColor(CMColor.primaryText)
                 
                 if isSelectionMode && !selectedContacts.isEmpty {
-                    Text("\(selectedContacts.count) records chosen") // Updated text
+                    Text("\(selectedContacts.count) record\(selectedContacts.count == 1 ? "" : "s") selected")
                         .font(.system(size: 14 * scalingFactor, weight: .regular))
                         .foregroundColor(CMColor.secondaryText)
                 }
@@ -181,8 +162,8 @@ struct AICleanerAllContactsView: View {
                 }
             }) {
                 Text(isSelectionMode ?
-                     (selectedContacts.isEmpty ? "Select All" : "Clear All") : // Updated text
-                        "Bulk Edit") // Updated text
+                     (selectedContacts.isEmpty ? "Select All" : "Deselect All") :
+                        "Edit")
                     .font(.system(size: 18 * scalingFactor, weight: .semibold))
                     .foregroundColor(CMColor.primary)
             }
@@ -197,7 +178,7 @@ struct AICleanerAllContactsView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(CMColor.secondaryText)
             
-            TextField("Search name, number or company...", text: $searchText) // Updated text
+            TextField("Search by name, number, or company...", text: $searchText)
                 .textFieldStyle(PlainTextFieldStyle())
             
             if !searchText.isEmpty {
@@ -221,7 +202,7 @@ struct AICleanerAllContactsView: View {
                 Image(systemName: "trash.fill")
                     .font(.system(size: 18 * scalingFactor, weight: .heavy))
                 
-                Text("Delete \(selectedContacts.count) record\(selectedContacts.count == 1 ? "" : "s")") // Updated text
+                Text("Delete \(selectedContacts.count) record\(selectedContacts.count == 1 ? "" : "s")")
                     .font(.system(size: 18 * scalingFactor, weight: .heavy))
             }
             .foregroundColor(.white)
@@ -232,7 +213,7 @@ struct AICleanerAllContactsView: View {
         }
     }
     
-    // MARK: - Local Contact Card View (to replace AICleanerSelectableSystemContactRowView)
+    // MARK: - Contact Card View
     
     struct ContactSquareCardView: View {
         let contact: CNContact
@@ -246,7 +227,7 @@ struct AICleanerAllContactsView: View {
             if !name.isEmpty { return name }
             if let phone = contact.phoneNumbers.first?.value.stringValue { return phone }
             if let email = contact.emailAddresses.first?.value as? String { return email }
-            return "Unidentified Record" // Updated text
+            return "Unsaved Contact"
         }
 
         private var avatarText: String {
@@ -260,7 +241,6 @@ struct AICleanerAllContactsView: View {
                 GeometryReader { buttonGeometry in
                     VStack(alignment: .leading, spacing: 10 * scalingFactor) {
                         
-                        // 1. Avatar & Selection Checkbox
                         HStack {
                             ZStack {
                                 Circle()
@@ -290,7 +270,7 @@ struct AICleanerAllContactsView: View {
                                     }
                                 }
                             } else {
-                                Image(systemName: "info.circle") // Updated icon for details
+                                Image(systemName: "info.circle")
                                     .font(.system(size: 24 * scalingFactor))
                                     .foregroundColor(CMColor.secondaryText.opacity(0.8))
                             }
@@ -298,21 +278,18 @@ struct AICleanerAllContactsView: View {
                         
                         Spacer()
                         
-                        // 2. Primary Identifier
                         Text(primaryDisplay)
                             .font(.system(size: 16 * scalingFactor, weight: .bold))
                             .foregroundColor(CMColor.primaryText)
                             .lineLimit(2)
                             .minimumScaleFactor(0.8)
                         
-                        // 3. Secondary info
-                        Text(contact.organizationName.isEmpty ? "Personal contact" : contact.organizationName) // Updated text
+                        Text(contact.organizationName.isEmpty ? "Personal Record" : contact.organizationName)
                             .font(.system(size: 12 * scalingFactor, weight: .medium))
                             .foregroundColor(CMColor.secondaryText)
                             .lineLimit(1)
                     }
                     .padding(16 * scalingFactor)
-                    // Ensure the card is square
                     .frame(width: buttonGeometry.size.width, height: buttonGeometry.size.width)
                     .background(
                         RoundedRectangle(cornerRadius: 16 * scalingFactor)
@@ -364,12 +341,12 @@ struct AICleanerAllContactsView: View {
         if searchText.isEmpty {
             return sortedContacts
         } else {
+            let searchQuery = searchText.lowercased()
             return sortedContacts.filter { contact in
                 let fullName = "\(contact.givenName) \(contact.familyName)"
                 let phoneNumbers = contact.phoneNumbers.map { $0.value.stringValue }.joined()
                 let emails = contact.emailAddresses.map { $0.value as String }.joined()
                 let company = contact.organizationName
-                let searchQuery = searchText.lowercased()
                 
                 return fullName.localizedCaseInsensitiveContains(searchQuery) ||
                 phoneNumbers.contains(searchQuery) ||
@@ -378,7 +355,4 @@ struct AICleanerAllContactsView: View {
             }
         }
     }
-    
-    // Grouping logic (groupedContacts and sortedSectionKeys) is now unused but kept the property names
-    // in the original file, so I'll remove them completely for a cleaner result.
 }

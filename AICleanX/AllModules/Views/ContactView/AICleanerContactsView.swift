@@ -115,9 +115,8 @@ struct AICleanerContactsView: View {
                             .font(.system(size: 14 * scalingFactor, weight: .medium))
                             .foregroundColor(CMColor.secondaryText)
                     }
-                } else if !viewModel.duplicateGroups.isEmpty {
-                    let totalDuplicates = viewModel.duplicateGroups.flatMap { $0 }.count
-                    Text("\(viewModel.duplicateGroups.count) groups • \(totalDuplicates) duplicates")
+                } else if viewModel.totalDuplicateContactCount > 0 { // Используем новый счетчик
+                    Text("\(viewModel.duplicateGroups.count) groups • \(viewModel.totalDuplicateContactCount) duplicates")
                         .font(.system(size: 14 * scalingFactor, weight: .medium))
                         .foregroundColor(CMColor.error)
                 } else if !viewModel.systemContacts.isEmpty {
@@ -217,21 +216,14 @@ struct AICleanerContactsView: View {
         case .allContacts:
             return "\(viewModel.systemContacts.count)"
         case .duplicates:
-            let duplicateCount = viewModel.duplicateGroups.flatMap { $0 }.count
-            return "\(duplicateCount)"
+            // Читаем готовый счетчик (totalDuplicateContactCount)
+            return "\(viewModel.totalDuplicateContactCount)"
         case .incomplete:
-            let incompleteCount = viewModel.systemContacts.filter { isIncompleteContact($0) }.count
-            return "\(incompleteCount)"
+            // Читаем готовый счетчик (incompleteContactCount)
+            return "\(viewModel.incompleteContactCount)"
         }
     }
-    
-    private func isIncompleteContact(_ contact: CNContact) -> Bool {
-        let hasName = !contact.givenName.isEmpty || !contact.familyName.isEmpty
-        let hasPhone = !contact.phoneNumbers.isEmpty
         
-        return !hasName || !hasPhone
-    }
-    
     // MARK: - Auxiliary Views
     private func permissionRequestView(scalingFactor: CGFloat) -> some View {
         VStack(spacing: 24 * scalingFactor) {
