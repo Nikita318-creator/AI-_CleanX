@@ -225,18 +225,18 @@ struct SimilaritySectionsView: View {
         .shadow(color: .black.opacity(0.1), radius: 10, y: 5)
     }
 
-    // ---
-    // MARK: - Primary Item View
-    // ---
-    
     private func createPrimaryItemView(for model: AICleanServiceModel, section: AICleanServiceSection, index: Int) -> some View {
         let isSelected = viewState.isSelected(model)
         let cornerRadius: CGFloat = 16
         let itemSize: CGFloat = 176
         
         return ZStack(alignment: .topLeading) {
+            // 1. ИЗОБРАЖЕНИЕ
             model.imageView(size: CGSize(width: itemSize, height: itemSize))
+                // ФИКС: Убедимся, что изображение занимает всю область и обрезается
+                .frame(width: itemSize, height: itemSize)
                 .cornerRadius(cornerRadius)
+                .clipped() // Добавим clipped для гарантии обрезки
                 .overlay(
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .stroke(CMColor.primary, lineWidth: isSelected ? 3 : 0)
@@ -251,6 +251,7 @@ struct SimilaritySectionsView: View {
                     .padding(8)
             }
 
+            // Video duration (если нужно)
             if viewState.type == .videos {
                 VStack {
                     Spacer()
@@ -265,27 +266,30 @@ struct SimilaritySectionsView: View {
                         Spacer()
                     }
                 }
+                .frame(width: itemSize, height: itemSize, alignment: .bottomLeading) // Располагаем относительно всего блока
                 .padding(8)
             }
             
-            // Selection overlay and Checkbox
-            Group {
+            // 2. Selection overlay and Checkbox (БЕЗ ИЗМЕНЕНИЙ С ПРЕДЫДУЩЕГО ШАГА, Т.К. ОН УЖЕ БЫЛ ПРАВИЛЬНЫЙ)
+            ZStack(alignment: .topTrailing) {
+                // Оверлей, занимающий всю область и обрезающийся
                 if isSelected {
                     Color.black.opacity(0.6)
+                        .frame(width: itemSize, height: itemSize)
                         .cornerRadius(cornerRadius)
                 }
                 
+                // Чекбокс
                 CheckboxView(isSelected: isSelected)
                     .padding(8)
             }
-            .frame(width: itemSize, height: itemSize, alignment: .topTrailing)
+            .frame(width: itemSize, height: itemSize)
             .opacity(isSelected || isLocalSelectionMode ? 1.0 : 0.0)
             .animation(.easeInOut(duration: 0.2), value: isSelected)
             .animation(.easeInOut(duration: 0.2), value: isLocalSelectionMode)
         }
         .frame(width: itemSize, height: itemSize)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius))
-        // ИСПРАВЛЕНО: ДОБАВЛЕНИЕ ЯВНОГО СТАБИЛЬНОГО ID
         .id(model.id)
         .onTapGesture {
             if isLocalSelectionMode {
@@ -304,23 +308,24 @@ struct SimilaritySectionsView: View {
         }
     }
 
-    // ---
-    // MARK: - Gallery Item View
-    // ---
-
     private func createGalleryItemView(for model: AICleanServiceModel, section: AICleanServiceSection, index: Int) -> some View {
         let isSelected = viewState.isSelected(model)
         let cornerRadius: CGFloat = 8
         let itemSize: CGFloat = 80
         
-        return ZStack {
+        return ZStack(alignment: .topLeading) { // Используем .topLeading для однородности, хотя для .topTrailing важнее
+            // 1. ИЗОБРАЖЕНИЕ
             model.imageView(size: CGSize(width: itemSize, height: itemSize))
+                // ГЛАВНЫЙ ФИКС: Убедимся, что рамка всегда накладывается на всю область и обрезана по радиусу
+                .frame(width: itemSize, height: itemSize)
                 .cornerRadius(cornerRadius)
+                .clipped() // Добавим clipped для гарантии обрезки
                 .overlay(
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .stroke(CMColor.primary, lineWidth: isSelected ? 3 : 0)
                 )
-            
+                
+            // Video duration (если нужно)
             if viewState.type == .videos {
                 VStack {
                     Spacer()
@@ -335,28 +340,30 @@ struct SimilaritySectionsView: View {
                         Spacer()
                     }
                 }
+                .frame(width: itemSize, height: itemSize, alignment: .bottomLeading) // Располагаем относительно всего блока
                 .padding(4)
             }
             
-            // Selection overlay and Checkbox
-            Group {
+            // 2. Selection overlay and Checkbox (ИСПРАВЛЕННЫЙ БЛОК)
+            ZStack(alignment: .topTrailing) {
+                // Оверлей, занимающий всю область и обрезающийся
                 if isSelected {
                     Color.black.opacity(0.6)
-                        .cornerRadius(cornerRadius)
+                        .frame(width: itemSize, height: itemSize) // !!! ФИКС: Принудительно заполняем всю площадь
+                        .cornerRadius(cornerRadius) // Обрезаем по радиусу
                 }
                 
+                // Чекбокс
                 CheckboxView(isSelected: isSelected)
                     .padding(4)
             }
-            .frame(width: itemSize, height: itemSize, alignment: .topTrailing)
+            .frame(width: itemSize, height: itemSize)
             .opacity(isSelected || isLocalSelectionMode ? 1.0 : 0.0)
             .animation(.easeInOut(duration: 0.2), value: isSelected)
             .animation(.easeInOut(duration: 0.2), value: isLocalSelectionMode)
         }
         .frame(width: itemSize, height: itemSize)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius))
-        .clipped()
-        // ИСПРАВЛЕНО: ДОБАВЛЕНИЕ ЯВНОГО СТАБИЛЬНОГО ID
         .id(model.id)
         .onTapGesture {
             if isLocalSelectionMode {

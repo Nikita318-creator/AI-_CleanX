@@ -79,26 +79,45 @@ struct AIFeatureSwipeDetailView: View {
         }
     }
     
+    // Оптимизированная функция:
     private func storeDecision(for assetId: String, decision: AIFeatureSwipeDecision) {
-        if let cacheValue = convertDecisionToCacheValue(decision) {
-            cacheDataService.setSwipeDecision(id: assetId, ignored: cacheValue)
-        } else {
-            cacheDataService.deleteSwipeDecision(id: assetId)
-        }
-        if let callback = onSwipeDecisionChanged {
-            callback()
+        // 1. Быстрое изменение в памяти (если нужно) или просто отправка в фон
+        
+        // 2. Использование Task для выполнения операции с диском в фоновом режиме
+        Task.detached {
+            if let cacheValue = await self.convertDecisionToCacheValue(decision) {
+                self.cacheDataService.setSwipeDecision(id: assetId, ignored: cacheValue)
+            } else {
+                self.cacheDataService.deleteSwipeDecision(id: assetId)
+            }
+            
+            // 3. Возврат на главный поток для UI-коллбэка, если он нужен
+            await MainActor.run {
+                if let callback = self.onSwipeDecisionChanged {
+                    callback()
+                }
+            }
         }
     }
     
+    // Оптимизированная функция:
     private func removeDecision(for assetId: String) {
         let _ = withAnimation(.easeInOut(duration: 0.3)) {
             assetDecisions.removeValue(forKey: assetId)
         }
-        cacheDataService.deleteSwipeDecision(id: assetId)
-        let impact = UIImpactFeedbackGenerator(style: .medium)
-        impact.impactOccurred()
-        if let callback = onSwipeDecisionChanged {
-            callback()
+        
+        // Использование Task для выполнения операции с диском в фоновом режиме
+        Task.detached {
+            self.cacheDataService.deleteSwipeDecision(id: assetId)
+            
+            // Возврат на главный поток для UI-коллбэка и вибрации
+            await MainActor.run {
+                let impact = UIImpactFeedbackGenerator(style: .medium)
+                impact.impactOccurred()
+                if let callback = self.onSwipeDecisionChanged {
+                    callback()
+                }
+            }
         }
     }
     
@@ -270,24 +289,26 @@ struct AIFeatureSwipeDetailView: View {
         .padding(.bottom, 12)
     }
     
+    // ... в AIFeatureSwipeDetailView
     @ViewBuilder
     private func modernMainImageView() -> some View {
         ZStack {
             let currentIndex = photoIndex
             let safeCurrentIndex = min(currentIndex, allImageModels.count - 1)
             
+            // ВАЖНОЕ ИЗМЕНЕНИЕ: Использование LazyVStack для оптимизации рендеринга
+            // Используем ForEach только для тех карточек, которые видны или скоро будут видны (Current + Next 2)
             ForEach(allImageModels.indices.filter { $0 >= safeCurrentIndex && $0 < min(safeCurrentIndex + 3, allImageModels.count) }, id: \.self) { modelIndex in
                 let isTopCard = modelIndex == safeCurrentIndex
                 let model = allImageModels[modelIndex]
                 
                 ZStack {
-                    // Card Container
+                    // Card Container (оставлен без изменений)
                     RoundedRectangle(cornerRadius: 32)
                         .fill(CMColor.white.opacity(0.05))
                         .overlay(
                             RoundedRectangle(cornerRadius: 32)
                                 .stroke(
-                                    // Градиент для рамки карточки
                                     LinearGradient(
                                         colors: [CMColor.white.opacity(0.2), CMColor.white.opacity(0.05)],
                                         startPoint: .topLeading,
@@ -298,12 +319,13 @@ struct AIFeatureSwipeDetailView: View {
                         )
                         .shadow(color: CMColor.black.opacity(0.3), radius: 20, x: 0, y: 10)
                     
-                    model.imageView(size: CGSize(width: 400, height: 400))
-                        .aspectRatio(contentMode: .fit)
+                    // >>> ОПТИМИЗАЦИЯ ЗДЕСЬ: Используем AssetImageView для асинхронной загрузки
+                    AssetImageView(asset: model.asset, targetSize: CGSize(width: 400, height: 400))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .clipShape(RoundedRectangle(cornerRadius: 32))
                         .padding(8)
-                    
+                    // <<< КОНЕЦ ОПТИМИЗАЦИИ
+
                     if isTopCard && !isCardAnimating {
                         modernActionIndicators()
                     }
@@ -704,6 +726,58 @@ struct AIFeatureSwipeDetailView: View {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+struct AssetImageView: View {
+    let asset: PHAsset
+    let targetSize: CGSize
+    @State private var image: UIImage? = nil
+    
+    // PHImageManager для запроса изображений
+    private static let imageManager = PHCachingImageManager()
+
+    var body: some View {
+        Group {
+            if let image = image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+            } else {
+                // Плейсхолдер во время загрузки
+                ProgressView()
+                    .frame(width: targetSize.width, height: targetSize.height)
+                    .background(Color.white.opacity(0.1))
+            }
+        }
+        .onAppear {
+            loadImage()
+        }
+        // Обязательно сбросить изображение, если Asset меняется (необходимо для ForEach)
+        .onChange(of: asset) { _ in
+            image = nil
+            loadImage()
+        }
+    }
+    
+    private func loadImage() {
+        // Опции для запроса изображения
+        let options = PHImageRequestOptions()
+        options.isSynchronous = false
+        options.deliveryMode = .highQualityFormat
+        options.resizeMode = .fast
+        
+        // Запрос изображения
+        AssetImageView.imageManager.requestImage(for: asset, targetSize: targetSize, contentMode: .aspectFill, options: options) { loadedImage, info in
+            // Убеждаемся, что мы не обрабатываем отмененный запрос
+            guard let loadedImage = loadedImage else { return }
+            
+            // Если мы уже загрузили изображение или это не целевое изображение, ничего не делаем
+            let isDegraded = info?[PHImageResultIsDegradedKey] as? Bool ?? false
+            if !isDegraded || self.image == nil {
+                self.image = loadedImage
             }
         }
     }

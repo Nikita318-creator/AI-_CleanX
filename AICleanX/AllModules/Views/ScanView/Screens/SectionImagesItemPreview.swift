@@ -50,20 +50,23 @@ struct SectionImagesItemPreview: View {
             .background(CMColor.backgroundSecondary)
             
             // MARK: - Main Content Area
-            HStack(spacing: 0) {
+            // Этот VStack будет содержать изображение, скроллвью и Spacer
+            VStack(spacing: 0) {
+                
                 // MARK: - Main Image and Checkbox
                 if selectedIndex < section.models.count {
                     let selectedModel = section.models[selectedIndex]
                     
                     ZStack {
+                        // Основное изображение
                         selectedModel.imageView(size: CGSize(width: 400, height: 400))
                             .aspectRatio(contentMode: .fit)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity) // Занимает всё доступное пространство
                             .background(CMColor.clear)
                             .clipShape(RoundedRectangle(cornerRadius: 24))
                             .clipped()
                         
-                        // Checkbox in top-right corner
+                        // Checkbox
                         VStack {
                             HStack {
                                 Spacer()
@@ -86,70 +89,73 @@ struct SectionImagesItemPreview: View {
                     .padding(.horizontal, 12)
                     .padding(.top, 12)
                     .background(CMColor.background)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .id(selectedModel.asset.localIdentifier)
                 }
                 
-                // MARK: - Vertical Thumbnails ScrollView
-                VStack(spacing: 0) {
-                    ScrollView(.vertical, showsIndicators: false) {
-                        ScrollViewReader { proxy in
-                            VStack(spacing: 8) {
-                                ForEach(section.models.indices, id: \.self) { index in
-                                    let model = section.models[index]
-                                    
-                                    Button {
-                                        withAnimation(.easeInOut(duration: 0.3)) {
-                                            selectedIndex = index
-                                        }
-                                    } label: {
-                                        ZStack {
-                                            model.imageView(size: CGSize(width: 70, height: 70))
-                                                .frame(width: 70, height: 70)
-                                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                            
-                                            if viewModel.isSelected(model) {
-                                                VStack {
-                                                    HStack {
-                                                        Spacer()
-                                                        CheckboxView(isSelected: true)
-                                                            .scaleEffect(0.8)
-                                                    }
-                                                    Spacer()
-                                                }
-                                                .padding(6)
-                                            }
-                                        }
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(
-                                                    selectedIndex == index ? CMColor.primary : CMColor.clear,
-                                                    lineWidth: 3
-                                                )
-                                        )
-                                        .scaleEffect(selectedIndex == index ? 1.05 : 1.0)
-                                        .animation(.easeInOut(duration: 0.2), value: selectedIndex)
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    ScrollViewReader { proxy in
+                        HStack(spacing: 8) {
+                            ForEach(section.models.indices, id: \.self) { index in
+                                let model = section.models[index]
+                                
+                                Button {
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        selectedIndex = index
                                     }
-                                    .buttonStyle(PlainButtonStyle())
-                                    .id(index)
+                                } label: {
+                                    ZStack {
+                                        // Миниатюра 60x60
+                                        model.imageView(size: CGSize(width: 60, height: 60))
+                                            .frame(width: 60, height: 60)
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        
+                                        if viewModel.isSelected(model) {
+                                            VStack {
+                                                HStack {
+                                                    Spacer()
+                                                    CheckboxView(isSelected: true)
+                                                        .scaleEffect(0.8)
+                                                }
+                                                Spacer()
+                                            }
+                                            .padding(6)
+                                        }
+                                    }
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(
+                                                selectedIndex == index ? CMColor.primary : CMColor.clear,
+                                                lineWidth: 3
+                                            )
+                                    )
+                                    .scaleEffect(selectedIndex == index ? 1.05 : 1.0)
+                                    .animation(.easeInOut(duration: 0.2), value: selectedIndex)
                                 }
+                                .buttonStyle(PlainButtonStyle())
+                                .id(index)
                             }
-                            .padding(.vertical, 16)
-                            .padding(.horizontal, 16)
-                            .onAppear {
-                                proxy.scrollTo(selectedIndex, anchor: .center)
-                            }
-                            .onChange(of: selectedIndex) { newIndex in
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    proxy.scrollTo(newIndex, anchor: .center)
-                                }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .onAppear {
+                            proxy.scrollTo(selectedIndex, anchor: .center)
+                        }
+                        .onChange(of: selectedIndex) { newIndex in
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                proxy.scrollTo(newIndex, anchor: .center)
                             }
                         }
                     }
                 }
+                .fixedSize(horizontal: false, vertical: true) // !!! ЭТО ЗАСТАВИТ ЕГО СЖАТЬСЯ !!!
                 .background(CMColor.backgroundSecondary)
-                .fixedSize(horizontal: true, vertical: false)
+                
+                Spacer()
             }
+            // Этот frame гарантирует, что главный контент-блок займет максимум места.
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(CMColor.backgroundSecondary)
         .navigationBarHidden(true)
