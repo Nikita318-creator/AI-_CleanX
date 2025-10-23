@@ -9,10 +9,9 @@ struct AICleanerContactsView: View {
     @State private var showAllContacts = false
     @State private var showDuplicates = false
     @State private var showIncomplete = false
-    
+
     var body: some View {
         GeometryReader { geometry in
-            // Определяем коэффициент масштабирования
             let scalingFactor = geometry.size.height / 844
             
             ZStack {
@@ -30,7 +29,6 @@ struct AICleanerContactsView: View {
                         loadingView(scalingFactor: scalingFactor)
                     } else {
                         ScrollView {
-                            // --- Сетка для квадратных ячеек (2 в ряд) ---
                             let columns = [
                                 GridItem(.flexible(), spacing: 16 * scalingFactor),
                                 GridItem(.flexible())
@@ -44,7 +42,6 @@ struct AICleanerContactsView: View {
                                     )
                                 }
                             }
-                            // ---------------------------------------------
                             .padding(.horizontal, 16 * scalingFactor)
                             .padding(.top, 24 * scalingFactor)
                             .padding(.bottom, 32 * scalingFactor)
@@ -87,7 +84,6 @@ struct AICleanerContactsView: View {
         }
     }
     
-    // MARK: - Header View
     private func headerView(scalingFactor: CGFloat) -> some View {
         HStack(spacing: 16 * scalingFactor) {
             Button(action: {
@@ -148,7 +144,6 @@ struct AICleanerContactsView: View {
         .padding(.vertical, 16 * scalingFactor)
     }
     
-    // MARK: - Contact Category Button (Квадратная ячейка)
     private func contactCategoryButton(category: ContactCategory, scalingFactor: CGFloat) -> some View {
         Button(action: {
             switch category {

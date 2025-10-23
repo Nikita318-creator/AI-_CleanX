@@ -285,6 +285,12 @@ struct SafeStorageView: View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
             ForEach(categories) { category in
                 Button(action: {
+                    guard ApphudPurchaseService.shared.hasActiveSubscription else {
+                        AnalyticService.shared.logEvent(name: "present paywall from safeFolder", properties: ["type":"\(category.title)"])
+                        isPaywallPresented = true
+                        return
+                    }
+                        
                     AnalyticService.shared.logEvent(name: "safeFolder Card tapped", properties: ["type":"\(category.title)"])
 
                     // Обработка нажатия

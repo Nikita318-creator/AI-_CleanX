@@ -268,12 +268,12 @@ struct PaywallContinueButton: View {
     var body: some View {
         Button(action: action) {
             Text("Continue")
-                .font(.system(size: 24, weight: .semibold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(CMColor.white)
                 .frame(maxWidth: .infinity)
-                .frame(height: 60)
+                .frame(height: 50)
                 .background(CMColor.primary)
-                .cornerRadius(30)
+                .cornerRadius(25)
         }
     }
 }

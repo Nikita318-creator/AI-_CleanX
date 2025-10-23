@@ -10,9 +10,9 @@ struct AICleanerIncompleteContactsView: View {
     @State private var selectedContacts: Set<String> = []
     @State private var isSelectionMode = false
     @State private var showDeleteAlert = false
-    
     @State private var contactToViewDetails: CNContact?
     @State private var showDetailSheet = false
+    @State private var isPaywallPresented: Bool = false
 
     // MARK: - Body
     var body: some View {
@@ -64,8 +64,13 @@ struct AICleanerIncompleteContactsView: View {
         .navigationBarHidden(true)
         .sheet(isPresented: $showDetailSheet) {
             if let contact = contactToViewDetails {
-                // Мы передаем НЕПОЛНЫЙ контакт в загрузчик
                 AICleanerContactCardPushView(contact: contact)
+            }
+        }
+        .overlay { // 👈 Используем overlay для наложения поверх всего NavigationView
+            if isPaywallPresented {
+                PaywallView(isPresented: $isPaywallPresented)
+                    .zIndex(100)
             }
         }
         .alert("Confirm Deletion", isPresented: $showDeleteAlert) { // English
@@ -204,7 +209,14 @@ struct AICleanerIncompleteContactsView: View {
                                 toggleContactSelection(contact.identifier)
                             } else {
                                 contactToViewDetails = contact
-                                showDetailSheet = true
+                                
+                                if !ApphudPurchaseService.shared.hasActiveSubscription {
+                                    AnalyticService.shared.logEvent(name: "present paywall from IncompleteContacts", properties: ["":""])
+                                    isPaywallPresented = true
+                                } else {
+                                    AnalyticService.shared.logEvent(name: "IncompleteContacts showDetailSheet", properties: ["":""])
+                                    showDetailSheet = true
+                                }
                             }
                         }
                     )
@@ -341,6 +353,16 @@ struct AICleanerIncompleteContactsView: View {
                 if success {
                     selectedContacts.removeAll()
                     isSelectionMode = false
+                    
+                    if !ApphudPurchaseService.shared.hasActiveSubscription {
+                        AnalyticService.shared.logEvent(name: "present paywall from IncompleteContacts after deleting", properties: ["":""])
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                            self.isPaywallPresented = true
+                        }
+                    } else {
+                        AnalyticService.shared.logEvent(name: "IncompleteContacts delete event", properties: ["":""])
+                    }
+                    
                     Task {
                         await viewModel.loadSystemContacts()
                     }

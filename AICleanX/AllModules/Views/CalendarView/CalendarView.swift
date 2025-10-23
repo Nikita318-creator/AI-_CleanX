@@ -17,6 +17,7 @@ struct AICalendarView: View {
     @State private var optimizationFailureMessage = ""
     @State private var failedOptimizationEvents: [(AICalendarSystemEvent, AICalendarDeletionError)] = []
     @State private var showingAIGuide = false
+    @State private var isPaywallPresented: Bool = false
 
     @State private var aiScanStartDate: Date = {
         var components = DateComponents()
@@ -127,7 +128,13 @@ struct AICalendarView: View {
             }
         }
         .navigationViewStyle(.stack)
-        
+        .overlay { // 👈 Используем overlay для наложения поверх всего NavigationView
+            if isPaywallPresented {
+                PaywallView(isPresented: $isPaywallPresented)
+                    .zIndex(100)
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: isPaywallPresented)
         .sheet(isPresented: $showingAIScanStartDatePicker) {
             if #available(iOS 16.0, *) {
                 SystemDatePickerView(selectedDate: $aiScanStartDate)
@@ -554,6 +561,15 @@ struct AICalendarView: View {
 
             let result = await aiCalendarAgent.deleteEvents(systemEventsToOptimize)
 
+            if result.deletedCount > 0, !ApphudPurchaseService.shared.hasActiveSubscription {
+                AnalyticService.shared.logEvent(name: "present paywall from Calendar after deleting", properties: ["":""])
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    self.isPaywallPresented = true
+                }
+            } else {
+                AnalyticService.shared.logEvent(name: "Calendar deleted events", properties: ["":""])
+            }
+            
             await MainActor.run {
                 selectedEventIdentifiers.removeAll()
 

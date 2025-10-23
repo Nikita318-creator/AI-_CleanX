@@ -41,10 +41,6 @@ final class MainViewModel: ObservableObject {
     private let calendarService: AICalendarAgent
 
     private var cancellables = Set<AnyCancellable>()
-
-    var hasActiveSubscription: Bool {
-        ApphudPurchaseService.shared.hasActiveSubscription
-    }
     
     init() {
         self.contactsViewModel = AICleanerContactsViewModel()

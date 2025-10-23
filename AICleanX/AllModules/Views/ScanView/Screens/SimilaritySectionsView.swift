@@ -6,8 +6,8 @@ struct SimilaritySectionsView: View {
     @Environment(\.dismiss) private var viewDismiss
     @State private var chosenSection: AICleanServiceSection?
     @State private var chosenImageIndex: Int = 0
-    
     @State private var isLocalSelectionMode: Bool = false
+    @State private var isPaywallPresented: Bool = false
     
     private let galleryColumns: [GridItem] = [
         GridItem(.adaptive(minimum: 80), spacing: 8)
@@ -101,8 +101,14 @@ struct SimilaritySectionsView: View {
                                     }
                                     MainHelper.shared.deletedItemsCount += 1
                                     
-                                    if self.viewState.sections.isEmpty {
-                                        self.viewDismiss()
+                                    // show PaywallView
+                                    if !ApphudPurchaseService.shared.hasActiveSubscription {
+                                        AnalyticService.shared.logEvent(name: "present paywall from SimilaritySectionsView after deleting", properties: ["":""])
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                                            self.isPaywallPresented = true
+                                        }
+                                    } else {
+                                        AnalyticService.shared.logEvent(name: "SimilaritySectionsView deleted photo", properties: ["":""])
                                     }
                                 }
                             }
@@ -133,6 +139,11 @@ struct SimilaritySectionsView: View {
                 }
             }
             .animation(.spring(response: 0.6, dampingFraction: 0.8), value: viewState.hasSelectedItems)
+            
+            if isPaywallPresented {
+                PaywallView(isPresented: $isPaywallPresented)
+                    .transition(.opacity)
+            }
         }
         .fullScreenCover(item: $chosenSection) { section in
             if viewState.type == .videos {

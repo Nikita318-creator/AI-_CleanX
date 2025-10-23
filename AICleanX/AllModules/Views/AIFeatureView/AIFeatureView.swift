@@ -105,33 +105,28 @@ struct AIFeatureView: View {
         
     @ViewBuilder
     private func headerView() -> some View {
-        // ... (код headerView остается прежним)
         VStack(alignment: .leading, spacing: 16) {
-            
-            // MARK: - Header with Back Button (Стилизовано по вашему примеру)
             HStack {
                 Button(action: {
-                    // Действие: закрывает текущий экран
                     dismiss()
                 }) {
-                    HStack(spacing: 6) { // Используем 6 для spacing
-                        Image(systemName: "chevron.left") // Стрелка "назад"
-                            .font(.system(size: 17, weight: .semibold)) // Размер 17, жирный
-                            .foregroundColor(CMColor.primary) // Цвет CMColor.primary
+                    HStack(spacing: 6) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(CMColor.primary)
                             
-                        Text("Go Back") // Текст "Go Back" (как в вашем примере)
-                            .font(.system(size: 17, weight: .regular)) // Размер 17, обычный
-                            .foregroundColor(CMColor.primary) // Цвет CMColor.primary
+                        Text("Go Back")
+                            .font(.system(size: 17, weight: .regular))
+                            .foregroundColor(CMColor.primary)
                     }
                 }
                 .buttonStyle(PlainButtonStyle())
                 
-                Spacer() // Отправляет кнопку влево
+                Spacer()
             }
-            .padding(.top, 0) // Отступ сверху для отступа от края Safe Area
-            .padding(.bottom, 6) // Отступ между кнопкой и заголовком
+            .padding(.top, 0)
+            .padding(.bottom, 6)
             
-            // Оригинальный блок заголовка (начинается под кнопкой)
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
@@ -152,7 +147,6 @@ struct AIFeatureView: View {
                 }
             }
             
-            // Оригинальный блок описания
             Text("AI analyze your photos to detect clutter, duplicates, and low-quality content instantly")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(CMColor.secondaryText.opacity(0.85))
@@ -206,16 +200,15 @@ struct AIFeatureView: View {
                 let impact = UIImpactFeedbackGenerator(style: .medium)
                 impact.impactOccurred()
                 
-//                if !viewModel.hasActiveSubscription {
-//                    // 👇 НОВОЕ ИСПРАВЛЕНИЕ: Закрываем текущий экран перед открытием Paywall
-//                    isSwipeModePresented = false
-//                    
-//                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-//                        isPaywallPresented = true
-//                    }
-//                } else {
+                if !ApphudPurchaseService.shared.hasActiveSubscription {
+                    AnalyticService.shared.logEvent(name: "show paywall from AIFeatureView", properties: ["":""])
+                    // 👇 НОВОЕ ИСПРАВЛЕНИЕ: Закрываем текущий экран перед открытием Paywall
+                    isSwipeModePresented = false
+                    isPaywallPresented = true
+                } else {
+                    AnalyticService.shared.logEvent(name: "AIFeatureView action: showSwipeOnboarding", properties: ["":""])
                     showSwipeOnboarding = true
-//                }
+                }
             }) {
                 HStack(spacing: 12) {
                     Image(systemName: "wand.and.stars")
@@ -251,15 +244,21 @@ struct AIFeatureView: View {
         )
     }
     
-    // ... (код resultsReadyCard остается прежним)
     @ViewBuilder
     private func resultsReadyCard() -> some View {
         Button(action: {
             let impact = UIImpactFeedbackGenerator(style: .medium)
             impact.impactOccurred()
                 
-            let resultsData = viewModel.getSwipeResultsData()
-            presentedResultsView = resultsData
+            if !ApphudPurchaseService.shared.hasActiveSubscription {
+                AnalyticService.shared.logEvent(name: "show paywall from AIFeatureView", properties: ["":""])
+                isSwipeModePresented = false
+                isPaywallPresented = true
+            } else {
+                AnalyticService.shared.logEvent(name: "AIFeatureView action: presentedResultsView", properties: ["":""])
+                let resultsData = viewModel.getSwipeResultsData()
+                presentedResultsView = resultsData
+            }
         }) {
             HStack(spacing: 16) {
                 ZStack {
@@ -325,7 +324,6 @@ struct AIFeatureView: View {
         
     @ViewBuilder
     private func categoriesSection() -> some View {
-        // ... (код categoriesSection остается прежним)
         VStack(alignment: .leading, spacing: 20) {
             HStack {
                 Text("Detection Categories")
@@ -399,15 +397,13 @@ struct AIFeatureView: View {
             let impact = UIImpactFeedbackGenerator(style: .light)
             impact.impactOccurred()
             
-            // todo не нужен пейвол тут
-//            if !viewModel.hasActiveSubscription {
-//                isSwipeModePresented = false
-//                
-////                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-//                    isPaywallPresented = true
-////                }
-//                return
-//            } else {
+            if !ApphudPurchaseService.shared.hasActiveSubscription {
+                AnalyticService.shared.logEvent(name: "show paywall from AIFeatureView", properties: ["":""])
+                isSwipeModePresented = false
+                isPaywallPresented = true
+                return
+            } else {
+                AnalyticService.shared.logEvent(name: "AIFeatureView action: opened category", properties: ["actualType":"\(type)"])
                 let actualType: AICleanServiceType.ImageType
                 if type == .blurred {
                     actualType = .blurred
@@ -425,11 +421,9 @@ struct AIFeatureView: View {
                 if !sections.isEmpty {
                     presentedSwipeView = SwipedPhotoModel(sections: sections, type: type)
                 }
-//            }
+            }
         } label: {
-            // ... (остальной код categoryCard остается прежним)
             HStack(spacing: 16) {
-                // Icon
                 ZStack {
                     Circle()
                         .fill(
@@ -452,7 +446,6 @@ struct AIFeatureView: View {
                         )
                 }
                 
-                // Content
                 VStack(alignment: .leading, spacing: 6) {
                     Text(title)
                         .font(.system(size: 17, weight: .bold))
@@ -487,7 +480,6 @@ struct AIFeatureView: View {
                 
                 Spacer()
                 
-                // Thumbnail or Arrow
                 if let image = image {
                     Image(uiImage: image)
                         .resizable()
@@ -516,7 +508,6 @@ struct AIFeatureView: View {
         .buttonStyle(.plain)
     }
     
-    // ... (formatMegabytes остается прежним)
     private func formatMegabytes(_ megabytes: Double) -> String {
         if megabytes < 1 {
             return String(format: "%.0f KB", megabytes * 1024)

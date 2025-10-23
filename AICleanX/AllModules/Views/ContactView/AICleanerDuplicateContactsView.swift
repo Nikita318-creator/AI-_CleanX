@@ -16,10 +16,9 @@ struct AICleanerDuplicateContactsView: View {
     @State private var selectedDuplicates: Set<String> = []
     @State private var showMergeAlert = false
     @State private var selectedGroup: [CNContact]?
-    
-    // groupToNavigate - ЛОКАЛЬНОЕ @State, используем $groupToNavigate
     @State private var groupToNavigate: ContactGroup? = nil
-    
+    @State private var isPaywallPresented: Bool = false
+
     var body: some View {
         GeometryReader { geometry in
             let scalingFactor = geometry.size.height / 844
@@ -41,7 +40,6 @@ struct AICleanerDuplicateContactsView: View {
                             
                             Spacer()
                             
-                            // ✏️ ИСПРАВЛЕНИЕ: "Identity Cleanup" -> "Очистка контактов"
                             Text("Contact Cleanup")
                                 .font(.system(size: 24 * scalingFactor, weight: .heavy))
                                 .foregroundColor(CMColor.primaryText)
@@ -59,7 +57,6 @@ struct AICleanerDuplicateContactsView: View {
                                         showMergeAlert = true
                                     }
                                 }) {
-                                    // ✏️ ИСПРАВЛЕНИЕ: "Merge" -> "Объединить"
                                     Text("Merge (\(selectedCount))")
                                         .font(.system(size: 16 * scalingFactor, weight: .bold))
                                         .foregroundColor(.white)
@@ -122,8 +119,21 @@ struct AICleanerDuplicateContactsView: View {
         .sheet(item: $groupToNavigate) { identifiableGroup in
             DuplicateGroupDetailView(viewModel: viewModel, group: identifiableGroup.contacts)
                 .onDisappear {
+                    if !ApphudPurchaseService.shared.hasActiveSubscription {
+                        AnalyticService.shared.logEvent(name: "present paywall from Contacts after action", properties: ["":""])
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                            self.isPaywallPresented = true
+                        }
+                    }
+                    
                     Task { await viewModel.loadSystemContacts() }
                 }
+        }
+        .overlay { // 👈 Используем overlay для наложения поверх всего NavigationView
+            if isPaywallPresented {
+                PaywallView(isPresented: $isPaywallPresented)
+                    .zIndex(100)
+            }
         }
         // ✏️ ИСПРАВЛЕНИЕ: "Confirm Consolidation" -> "Подтвердите объединение"
         .alert("Confirm Merge", isPresented: $showMergeAlert) {
@@ -170,7 +180,6 @@ struct AICleanerDuplicateContactsView: View {
         let selectedIds = Set(selectedInGroup.map { $0.identifier })
         
         guard selectedInGroup.count >= 2 else {
-            // ✏️ ИСПРАВЛЕНИЕ: "Please choose at least 2 contacts for consolidation."
             viewModel.errorMessage = "Please choose at least 2 contacts to merge."
             return
         }
@@ -186,11 +195,19 @@ struct AICleanerDuplicateContactsView: View {
                 if success {
                     selectedIds.forEach { selectedDuplicates.remove($0) }
                     
-                    // ✏️ ИСПРАВЛЕНИЕ: "The selected \(selectedInGroup.count) contacts were merged into one master entry."
                     viewModel.mergeSuccessMessage = "The selected \(selectedInGroup.count) contacts have been merged into one entry."
                     viewModel.showMergeSuccess = true
                     
+                    if !ApphudPurchaseService.shared.hasActiveSubscription {
+                        AnalyticService.shared.logEvent(name: "present paywall from Contacts after action", properties: ["":""])
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                            self.isPaywallPresented = true
+                        }
+                    }
+                    
                     Task { await viewModel.loadSystemContacts() }
+                } else {
+                    AnalyticService.shared.logEvent(name: "Contacts action event", properties: ["":""])
                 }
             }
         }
