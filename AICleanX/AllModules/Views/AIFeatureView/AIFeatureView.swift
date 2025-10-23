@@ -206,16 +206,16 @@ struct AIFeatureView: View {
                 let impact = UIImpactFeedbackGenerator(style: .medium)
                 impact.impactOccurred()
                 
-                if !viewModel.hasActiveSubscription {
-                    // 👇 НОВОЕ ИСПРАВЛЕНИЕ: Закрываем текущий экран перед открытием Paywall
-                    isSwipeModePresented = false
-                    
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        isPaywallPresented = true
-                    }
-                } else {
+//                if !viewModel.hasActiveSubscription {
+//                    // 👇 НОВОЕ ИСПРАВЛЕНИЕ: Закрываем текущий экран перед открытием Paywall
+//                    isSwipeModePresented = false
+//                    
+//                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+//                        isPaywallPresented = true
+//                    }
+//                } else {
                     showSwipeOnboarding = true
-                }
+//                }
             }) {
                 HStack(spacing: 12) {
                     Image(systemName: "wand.and.stars")
@@ -399,15 +399,15 @@ struct AIFeatureView: View {
             let impact = UIImpactFeedbackGenerator(style: .light)
             impact.impactOccurred()
             
-            if !viewModel.hasActiveSubscription {
-                // 👇 НОВОЕ ИСПРАВЛЕНИЕ: Закрываем текущий экран перед открытием Paywall
-                isSwipeModePresented = false
-                
-//                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    isPaywallPresented = true
-//                }
-                return
-            } else {
+            // todo не нужен пейвол тут
+//            if !viewModel.hasActiveSubscription {
+//                isSwipeModePresented = false
+//                
+////                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+//                    isPaywallPresented = true
+////                }
+//                return
+//            } else {
                 let actualType: AICleanServiceType.ImageType
                 if type == .blurred {
                     actualType = .blurred
@@ -425,7 +425,7 @@ struct AIFeatureView: View {
                 if !sections.isEmpty {
                     presentedSwipeView = SwipedPhotoModel(sections: sections, type: type)
                 }
-            }
+//            }
         } label: {
             // ... (остальной код categoryCard остается прежним)
             HStack(spacing: 16) {

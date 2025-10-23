@@ -153,6 +153,7 @@ struct SpeedTestView: View {
                     AnalyticService.shared.logEvent(name: "startRealSpeedTest", properties: ["":""])
                     speedometerViewModel.startRealSpeedTest()
                     
+                    // todo не нужен пейвол тут ?
                     if !ApphudPurchaseService.shared.hasActiveSubscription {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [self] in
                             isPaywallPresented = true

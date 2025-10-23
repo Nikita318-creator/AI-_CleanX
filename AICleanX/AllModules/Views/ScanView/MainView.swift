@@ -210,11 +210,12 @@ struct MainView: View {
     }
     
     private func handleTap(for type: ScanItemType) {
-        if !viewModel.hasActiveSubscription {
-            AnalyticService.shared.logEvent(name: "present paywall from scanView", properties: ["":""])
-            isPaywallPresented = true
-            return
-        }
+        // todo не нужен пейвол тут
+//        if !viewModel.hasActiveSubscription {
+//            AnalyticService.shared.logEvent(name: "present paywall from scanView", properties: ["":""])
+//            isPaywallPresented = true
+//            return
+//        }
         
         AnalyticService.shared.logEvent(name: "handleTap on scanView", properties: ["type":"\(type.title)"])
 

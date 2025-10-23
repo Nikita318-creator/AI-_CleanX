@@ -4,18 +4,14 @@ struct PaywallView: View {
     @Binding var isPresented: Bool
     @StateObject private var viewModel: PaywallViewModel
     
-    // Состояние для выбранного плана (по умолчанию Месяц как "Лучшее предложение")
     @State private var selectedPlan: PurchaseServiceProduct = ConfigService.shared.isProSubs ? .monthPRO : .month
     
-    // Состояние для отображения кнопки закрытия (используем для opacity)
     @State private var closeButtonOpacity: Double = 0.0
 
-    // MARK: - ID для ScrollViewReader
     private let scrollBottomID = "BottomAnchor"
 
     init(isPresented: Binding<Bool>) {
         self._isPresented = isPresented
-        // NOTE: Используйте здесь ваш фактический инициализатор PaywallViewModel
         self._viewModel = StateObject(wrappedValue: PaywallViewModel(isPresented: isPresented))
     }
 
@@ -24,22 +20,17 @@ struct PaywallView: View {
             CMColor.background
                 .ignoresSafeArea()
 
-            // 1. Используем ScrollViewReader для управления прокруткой
             ScrollViewReader { proxy in
                 VStack(spacing: 0) {
                     
-                    // --- Скроллируемая область ---
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(spacing: 0) {
                             
-                            // --- Верхний Блок: Кнопка закрытия и Изображение ---
                             HStack(alignment: .top) {
-                                // Заглушка, чтобы кнопка закрытия была слева, а изображение в центре
                                 Spacer().frame(width: 50)
                                     
                                 Spacer()
                                     
-                                // Изображение
                                 Image("paywallImage")
                                     .resizable()
                                     .scaledToFit()
@@ -48,7 +39,6 @@ struct PaywallView: View {
                                     
                                 Spacer()
                                     
-                                // Кнопка закрытия
                                 CloseButtonView(isPresented: $isPresented)
                                     .opacity(closeButtonOpacity)
                                     .animation(.easeIn(duration: 0.3), value: closeButtonOpacity)
@@ -56,11 +46,9 @@ struct PaywallView: View {
                             .padding(.top, 15)
                             .padding(.leading, 10)
 
-                            // --- Тайтл и Фичи ---
                             PaywallMarketingBlockView()
                                 .padding(.top, 10)
                             
-                            // --- Блок выбора подписки (Неделя / Месяц) ---
                             SubscriptionSelectorView(
                                 viewModel: viewModel,
                                 selectedPlan: $selectedPlan
@@ -68,19 +56,24 @@ struct PaywallView: View {
                             .padding(.horizontal, 20)
                             .padding(.top, 25)
                             
-                            // 2. Добавляем ID к самому нижнему элементу в ScrollView
-                            Text("Cancel anytime")
+                            // Добавленный текст
+                            Text("Premium free for 3 days:\nTry 3 days free")
+                                .font(.system(size: 24, weight: .semibold))
+                                .foregroundColor(CMColor.primary)
+                                .padding(.top, 10)
+                                .multilineTextAlignment(.center)
+
+                            Text("-- Cancel anytime --")
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(CMColor.secondaryText.opacity(0.6))
-                                .padding(.top, 25)
+                                .padding(.top, 5)
                                 .padding(.bottom, 20)
-                                .id(scrollBottomID) // <-- Цель для прокрутки
+                                .id(scrollBottomID)
                         }
-                    } // Конец ScrollView
+                    }
                     
                     Spacer(minLength: 0)
                     
-                    // --- Нижняя часть: Кнопка Продолжить и ссылки (Не скроллируются) ---
                     VStack(spacing: 0) {
                         PaywallContinueButton(action: {
                             if ConfigService.shared.isProSubs {
@@ -95,34 +88,32 @@ struct PaywallView: View {
                         PaywallBottomLinksView(isPresented: $isPresented, viewModel: viewModel)
                             .padding(.vertical, 10)
                     }
-                } // Конец VStack
+                }
                 
-                // 3. Вызов прокрутки в onAppear
                 .onAppear {
                     self.closeButtonOpacity = 1.0 // todo решил не прятать кнопку
                     // Появление кнопки закрытия через 2 секунды
+                    
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                         self.closeButtonOpacity = 1.0
                     }
                     
-                    // Автопрокрутка к низу через 1 секунду
-                    // Используем DispatchQueue.main.asyncAfter для задержки
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        withAnimation(.easeInOut(duration: 1.0)) { // Анимация для плавности
+                        withAnimation(.easeInOut(duration: 1.0)) {
                             proxy.scrollTo(scrollBottomID, anchor: .bottom)
                         }
                     }
                 }
-            } // Конец ScrollViewReader
+            }
             if viewModel.isLoading {
                 ProgressOverlayView()
                     .transition(.opacity)
             }
-        } // Конец ZStack
+        }
     }
 }
 
-// MARK: - 1. Блок закрытия
+// MARK: - 1.
 struct CloseButtonView: View {
     @Binding var isPresented: Bool
     
@@ -143,7 +134,7 @@ struct CloseButtonView: View {
 }
 
 
-// MARK: - 2. Блок маркетинга (Тайтл + Фичи)
+// MARK: - 2.
 struct PaywallMarketingBlockView: View {
     let features = [
         "Free up gigabytes of hidden junk — get speed and space for your favorite apps!",
@@ -160,7 +151,6 @@ struct PaywallMarketingBlockView: View {
                 .multilineTextAlignment(.leading)
                 .padding(.horizontal, 20)
             
-            // Блок с фичами
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(features, id: \.self) { feature in
                     HStack(alignment: .top, spacing: 12) {
@@ -179,7 +169,7 @@ struct PaywallMarketingBlockView: View {
     }
 }
 
-// MARK: - 3. Блок Выбора Плана
+// MARK: - 3.
 struct SubscriptionSelectorView: View {
     @ObservedObject var viewModel: PaywallViewModel
     @Binding var selectedPlan: PurchaseServiceProduct
@@ -210,7 +200,7 @@ struct SubscriptionSelectorView: View {
     }
 }
 
-// MARK: - Компонент кнопки плана
+// MARK: -
 struct PlanButton: View {
     let title: String
     let price: String
@@ -256,7 +246,6 @@ struct PlanButton: View {
                 .scaleEffect(isSelected ? 1.03 : 1.0)
                 .animation(.easeInOut(duration: 0.2), value: isSelected)
                 
-                // Бейдж "BEST OFFER" - поверх рамки
                 if showBadge {
                     Text("BEST OFFER")
                         .font(.caption.bold())
@@ -272,7 +261,7 @@ struct PlanButton: View {
     }
 }
 
-// MARK: - 4. Кнопка Продолжить (Без изменений)
+// MARK: - 4.
 struct PaywallContinueButton: View {
     let action: () -> Void
     
@@ -289,7 +278,7 @@ struct PaywallContinueButton: View {
     }
 }
 
-// MARK: - 5. Нижние ссылки (Без изменений)
+// MARK: - 5.
 struct PaywallBottomLinksView: View {
     @Binding var isPresented: Bool
     @ObservedObject var viewModel: PaywallViewModel
