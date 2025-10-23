@@ -99,6 +99,7 @@ struct PaywallView: View {
                 
                 // 3. Вызов прокрутки в onAppear
                 .onAppear {
+                    self.closeButtonOpacity = 1.0 // todo решил не прятать кнопку
                     // Появление кнопки закрытия через 2 секунды
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                         self.closeButtonOpacity = 1.0
