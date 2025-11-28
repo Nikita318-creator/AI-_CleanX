@@ -1,9 +1,23 @@
 import SwiftUI
 import Amplitude
 import ApphudSDK
+import FirebaseCore
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        // 1. Инициализация Firebase в AppDelegate
+        FirebaseApp.configure()
+
+        return true
+    }
+}
 
 @main
 struct cleaner_next_levelApp: App {
+    
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    
     init() {
         // Amplitude:
         Amplitude.instance().initializeApiKey("285007276a8006bf1d7e4bc3edfb2bb8")

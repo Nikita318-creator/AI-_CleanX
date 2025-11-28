@@ -1,6 +1,7 @@
 import StoreKit
 import ApphudSDK
 import Combine
+import FirebaseAnalytics
 
 // MARK: - App Constants and Types
 
@@ -94,6 +95,11 @@ final class ApphudPurchaseService {
         }
 
         Apphud.purchase(product) { [weak self] result in
+            if let subscription = result.subscription, subscription.isActive() || result.nonRenewingPurchase != nil {
+                print("Apphud: Purchase successful.")
+                self?.handleSuccessfulPurchase(product: product)
+                completion(.success)
+            }
             self?.handlePurchaseResult(result, completion: completion)
         }
     }
@@ -175,6 +181,34 @@ final class ApphudPurchaseService {
         }
     }
 
+    func handleSuccessfulPurchase(product: ApphudProduct) {
+        // Убедимся, что у ApphudProduct есть связанный SKProduct
+        guard let skProduct = product.skProduct else {
+            print("Firebase Analytics Error: SKProduct not available for \(product.productId)")
+            return
+        }
+        
+        // Значения для логгирования:
+        let priceValue = skProduct.price.doubleValue // Numerical value (Double)
+        let currencyCode = skProduct.priceLocale.currencyCode ?? "USD"
+        
+        // --- Исправленный код для отправки события покупки в Firebase ---
+        Analytics.logEvent(AnalyticsEventPurchase, parameters: [
+            // Обязательные параметры Firebase для атрибуции и дохода
+            AnalyticsParameterItemID: product.productId,
+            AnalyticsParameterItemName: product.name ?? "Subscription",
+            // Firebase требует, чтобы цена была передана как Double
+            AnalyticsParameterValue: priceValue,
+            AnalyticsParameterCurrency: currencyCode,
+            
+            // Дополнительный параметр
+            "is_trial_conversion": false
+        ])
+        // -------------------------------------------------------------
+        
+        print("Firebase Analytics: Logged purchase event for product \(product.productId) with price \(priceValue) \(currencyCode)")
+    }
+    
     private func handleRestoreResult(subscriptions: [ApphudSubscription]?, error: Error?, completion: @escaping PurchaseCompletion) {
         if let restoreError = error {
             completion(.failure(restoreError))
