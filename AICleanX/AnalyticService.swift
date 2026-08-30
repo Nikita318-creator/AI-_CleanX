@@ -1,5 +1,5 @@
 import Amplitude
-//import AppTrackingTransparency
+import AppTrackingTransparency
 
 enum EnvironmentAmplitude {
     case prod
@@ -8,7 +8,7 @@ enum EnvironmentAmplitude {
 
 class AnalyticService {
     static let shared = AnalyticService()
-//    private var isTrackingAuthorized = false
+    private var isTrackingAuthorized = false
     
     private init() {}
     
@@ -18,10 +18,10 @@ class AnalyticService {
     func logEvent(name: String, properties: [AnyHashable : Any]) {
         guard environment == .prod else { return }
         
-//        if !isTrackingAuthorized {
-//            requestTrackingAuthorization()
-////            return // todo return it after test AnalyticService
-//        }
+        if !isTrackingAuthorized {
+            requestTrackingAuthorization()
+//            return // todo return it after test AnalyticService
+        }
         
         var versionText = "V:"
         if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
@@ -35,16 +35,16 @@ class AnalyticService {
         Amplitude.instance().logEvent(name, withEventProperties: eventProperties)
     }
     
-//    func requestTrackingAuthorization() {
-//        ATTrackingManager.requestTrackingAuthorization { [weak self] status in
-//            switch status {
-//            case .authorized:
-//                self?.isTrackingAuthorized = true
-//            case .denied, .restricted, .notDetermined:
-//                self?.isTrackingAuthorized = false
-//            @unknown default:
-//                self?.isTrackingAuthorized = false
-//            }
-//        }
-//    }
+    func requestTrackingAuthorization() {
+        ATTrackingManager.requestTrackingAuthorization { [weak self] status in
+            switch status {
+            case .authorized:
+                self?.isTrackingAuthorized = true
+            case .denied, .restricted, .notDetermined:
+                self?.isTrackingAuthorized = false
+            @unknown default:
+                self?.isTrackingAuthorized = false
+            }
+        }
+    }
 }

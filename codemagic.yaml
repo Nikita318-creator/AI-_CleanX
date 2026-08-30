@@ -1,0 +1,57 @@
+workflows:
+  my-ios-build:
+    name: iOS Build and App Store Deployment
+    max_build_duration: 60
+    
+    environment:
+      groups:
+        - app_store_credentials
+      vars:
+        BUNDLE_ID: "Nat.AICleanX.com.AICleanX"
+        XCODE_PROJECT: "AICleanX.xcodeproj"
+        XCODE_SCHEME: "AICleanX"
+      
+      xcode: 26.1.1 # Используем последнюю версию Xcode
+      
+    scripts:
+      
+      - name: Set up keychain
+        script: |
+          # Инициализация связки ключей
+          keychain initialize
+          
+      - name: Fetch signing files
+        script: |
+          # Скачиваем профили, используя P8 ключ
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE --create
+            
+      - name: Use system default keychain and install certificates
+        script: |
+          # Установка P12-сертификата (если загружен в UI)
+          keychain add-certificates
+          
+      - name: Set up code signing settings on Xcode project
+        script: |
+          # Применяем скачанные профили к проекту
+          xcode-project use-profiles
+          
+      - name: Build ipa for distribution
+        script: |
+          # Сборка ipa с использованием ваших схемы и проекта
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+            
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+      
+    publishing:
+      app_store_connect:
+        # Используем переменные, загруженные из группы 'app_store_credentials'
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true # Отправляем билд в TestFlight
+
