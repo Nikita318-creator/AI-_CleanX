@@ -24,6 +24,14 @@ struct cleaner_next_levelApp: App {
         Amplitude.instance().setServerZone(.EU)
         Amplitude.instance().trackingSessionEvents = true
 
+        AppsFlyerManager.shared.configure()
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+//            AppsFlyerManager.shared.trackSubscriptionPurchase(
+//                price: 8,
+//                currency: "USD",
+//                productId: "75876848764"
+//            )
+//        }
         // Amplitude: Apphud
         Apphud.start(apiKey: "app_myFpmSbBsF6KFRuGe3hhRwNnr1eEp2")
         let idfv = UIDevice.current.identifierForVendor?.uuidString ?? ""

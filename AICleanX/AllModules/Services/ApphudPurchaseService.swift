@@ -181,6 +181,21 @@ final class ApphudPurchaseService {
         }
     }
 
+//    func handleSuccessfulPurchase(product: ApphudProduct) {
+//        guard let skProduct = product.skProduct else { return }
+//        
+//        let currencyCode = skProduct.priceLocale.currencyCode ?? "USD"
+//        
+//        // Передаем "subscribe" как имя ивента
+//        Analytics.logEvent("subscribe", parameters: [
+//            AnalyticsParameterItemID: product.productId,
+//            AnalyticsParameterItemName: product.name ?? "Subscription",
+//            AnalyticsParameterValue: 0.0, // 0.0 для бесплатного триала
+//            AnalyticsParameterCurrency: currencyCode,
+//            "is_trial": true
+//        ])
+//    }
+    
     func handleSuccessfulPurchase(product: ApphudProduct) {
         // Убедимся, что у ApphudProduct есть связанный SKProduct
         guard let skProduct = product.skProduct else {
@@ -205,6 +220,12 @@ final class ApphudPurchaseService {
             "is_trial_conversion": false
         ])
         // -------------------------------------------------------------
+        
+        AppsFlyerManager.shared.trackSubscriptionPurchase(
+            price: priceValue,
+            currency: currencyCode,
+            productId: product.productId
+        )
         
         print("Firebase Analytics: Logged purchase event for product \(product.productId) with price \(priceValue) \(currencyCode)")
     }

@@ -1,4 +1,5 @@
 import Amplitude
+import AdSupport
 import AppTrackingTransparency
 
 enum EnvironmentAmplitude {
@@ -40,11 +41,20 @@ class AnalyticService {
             switch status {
             case .authorized:
                 self?.isTrackingAuthorized = true
-            case .denied, .restricted, .notDetermined:
+                print("[AppsFlyer] ATTrackingManager.requestTrackingAuthorization result granted with status \(status)")
+                AppsFlyerManager.shared.start()
+            case .denied, .restricted:
+                self?.isTrackingAuthorized = false
+                print("[AppsFlyer] ATTrackingManager.requestTrackingAuthorization result granted with status \(status)")
+                AppsFlyerManager.shared.start()
+            case .notDetermined:
                 self?.isTrackingAuthorized = false
             @unknown default:
                 self?.isTrackingAuthorized = false
             }
+            
+            let idfa = ASIdentifierManager.shared().advertisingIdentifier.uuidString
+            print("[IDFA] Мой тестовый айфон: \(idfa)")
         }
     }
 }
